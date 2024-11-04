@@ -3,6 +3,9 @@ node_modules/
 
 # Ignore .env file
 .env
-.vercel
-# .gitignore
+
+# Ignore Vercel configuration
+.vercel/
+
+# Ignore credentials file
 credentials.json
