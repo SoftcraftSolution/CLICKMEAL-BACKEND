@@ -116,3 +116,21 @@ exports.getMenuItemsByCategory = async (req, res) => {
         res.status(500).json({ message: err.message }); // Send error response
     }
 };
+exports.subcategoryList = async (req, res) => {
+    try {
+      // Find all subcategories
+      const subcategories = await Subcategory.find();
+  
+      if (!subcategories || subcategories.length === 0) {
+        return res.status(404).json({ message: 'No subcategories found' });
+      }
+  
+      return res.status(200).json({
+        message: 'Subcategories fetched successfully',
+        data: subcategories,
+      });
+    } catch (error) {
+      console.error('Error fetching subcategories:', error);
+      return res.status(500).json({ message: 'Server error', error: error.message });
+    }
+  };

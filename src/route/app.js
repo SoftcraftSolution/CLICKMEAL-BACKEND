@@ -13,12 +13,14 @@ router.post('/add-category',categorycontroller.addCategory)
 router.post('/add-subcategory', upload,categorycontroller.addSubcategory)
 router.get('/get-category',categorycontroller.CategoryList)
 router.get('/get-categorybyId',categorycontroller.getMenuItemsByCategory)
+router.get('/subcategory-list',categorycontroller.subcategoryList)
 
 
 router.post('/add-company',companyController.addCompany)
 router.get('/get-company',companyController.getCompanyList)
 router.post('/add-item',upload,itemController.createMenuItem)
 router.get('/get-all-item',itemController.getAllMenuItems)
+
 
 
 module.exports = router;
