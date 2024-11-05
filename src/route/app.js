@@ -23,7 +23,8 @@ router.get('/get-company',companyController.getCompanyList)
 router.post('/add-item',upload,itemController.createMenuItem)
 router.get('/get-all-item',itemController.getAllMenuItems)
 
-router.post('/add-cart',cartController.addToCart)
+router.post('/add-cart',cartController.addMultipleToCart)
+router.get('/my-cart',cartController.getCartByUserId)
 
 
 
