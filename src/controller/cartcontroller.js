@@ -63,17 +63,31 @@ exports.addMultipleToCart = async (req, res) => {
 
   
   // Get cart for a specific user
-  exports.getCartByUserId = async (req, res) => {
+ // Get cart for a specific user
+exports.getCartByUserId = async (req, res) => {
     const { userId } = req.query;
-  
+
     try {
-      const cartItems = await Cart.find({ userId }).populate('itemId'); // Populating itemId to get full item details
-      res.status(200).json({ cartItems });
+        const cartItems = await Cart.find({ userId }).populate('itemId'); // Populating itemId to get full item details
+
+        // Calculate total price and item count
+        let totalPrice = 0;
+        let itemCount = 0;
+
+        cartItems.forEach(cartItem => {
+            const itemPrice = cartItem.itemId.price; // Assuming `price` is a field in the Item model
+            const quantity = cartItem.quantity;
+            totalPrice += itemPrice * quantity; // Update total price
+            itemCount += quantity; // Update item count
+        });
+
+        res.status(200).json({ cartItems, totalPrice, itemCount });
     } catch (error) {
-      console.error('Error fetching cart:', error);
-      res.status(500).json({ message: 'Server error.' });
+        console.error('Error fetching cart:', error);
+        res.status(500).json({ message: 'Server error.' });
     }
-  };
+};
+
   
   // Remove item from cart
   exports.removeFromCart = async (req, res) => {
