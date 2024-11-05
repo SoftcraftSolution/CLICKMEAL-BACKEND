@@ -15,5 +15,6 @@ router.get('/get-category',categorycontroller.CategoryList)
 router.post('/add-company',companyController.addCompany)
 router.get('/get-company',companyController.getCompanyList)
 router.post('/add-item',upload,itemController.createMenuItem)
+router.get('/get-all-item',itemController.getAllMenuItems)
 
 module.exports = router;
