@@ -1,6 +1,7 @@
 const Category = require('../model/category.model'); // Ensure this points to your model
 const cloudinary = require('cloudinary').v2;
  const Subcategory=require('../model/subcategory.model')
+ const MenuItem=require('../model/item.model')
 
 // Controller function to handle home updates
 exports.addCategory = async (req, res) => {
@@ -95,5 +96,23 @@ exports.addSubcategory = async (req, res) => {
     } catch (error) {
         console.error('Error while adding subcategory:', error);
         res.status(500).json({ message: 'An error occurred while adding the subcategory.' });
+    }
+};
+exports.getMenuItemsByCategory = async (req, res) => {
+    const { categoryId } = req.query; // Get category ID from request parameters
+
+    try {
+        // Find all menu items that belong to the specified category ID
+        const menuItems = await MenuItem.find({ category: categoryId });
+
+        // Check if any menu items were found
+        if (menuItems.length === 0) {
+            return res.status(404).json({ message: "No menu items found for this category." });
+        }
+
+        res.status(200).json(menuItems); // Respond with the found menu items
+    } catch (err) {
+        console.error("Error fetching menu items:", err); // Log error details
+        res.status(500).json({ message: err.message }); // Send error response
     }
 };
