@@ -1,15 +1,16 @@
 const mongoose = require('mongoose');
 
-// Create a category schema
+// Create a main category schema
 const categorySchema = new mongoose.Schema({
     name: {
         type: String,
-        // Ensure that the category name is unique
+        required: true, // Ensure that the category name is required
+        unique: true,   // Ensure that the category name is unique
     },
-    image: {
-        type: String,
-      
-    },
+    subcategories: [{ 
+        type: mongoose.Schema.Types.ObjectId, // Use ObjectId for references to Subcategory
+        ref: 'Subcategory' // Reference to the Subcategory model
+    }],
     createdAt: {
         type: Date,
         default: Date.now, // Default to the current date
@@ -20,7 +21,11 @@ const categorySchema = new mongoose.Schema({
     },
 });
 
-// Middleware to update the `updatedAt` field on save
+// Middleware to update the `updatedAt` field on save for categories
+categorySchema.pre('save', function(next) {
+    this.updatedAt = Date.now();
+    next();
+});
 
 // Create the Category model
 const Category = mongoose.model('Category', categorySchema);

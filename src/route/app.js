@@ -9,8 +9,10 @@ const itemController=require('../controller/itemcontroller')
 router.post('/register',usercontroller.registerUser);
 router.post('/login',usercontroller.loginUser)
 
-router.post('/add-category',upload,categorycontroller.addCategory)
+router.post('/add-category',categorycontroller.addCategory)
+router.post('/add-subcategory', upload,categorycontroller.addSubcategory)
 router.get('/get-category',categorycontroller.CategoryList)
+
 
 router.post('/add-company',companyController.addCompany)
 router.get('/get-company',companyController.getCompanyList)
