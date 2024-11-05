@@ -2,6 +2,8 @@ const MenuItem = require('../model/item.model');
 const cloudinary = require('cloudinary').v2; 
 
 // Create a new menu item
+const Category = require('../model/category.model'); // Adjust path as necessary
+
 exports.createMenuItem = async (req, res) => {
     try {
         let image = null;
@@ -34,10 +36,16 @@ exports.createMenuItem = async (req, res) => {
         const ingredients = Array.isArray(req.body.ingredients) ? req.body.ingredients : JSON.parse(req.body.ingredients || "[]");
         const nutritionalInfo = Array.isArray(req.body.nutritionalInfo) ? req.body.nutritionalInfo : JSON.parse(req.body.nutritionalInfo || "[]");
 
+        // Find the category by its name
+        const category = await Category.findOne({ name: req.body.category });
+        if (!category) {
+            return res.status(404).json({ message: 'Category not found.' }); // Handle case where category doesn't exist
+        }
+
         // Prepare the menu item data
         const menuItemData = {
             itemName: req.body.itemName,
-            category: req.body.category,
+            category: category, // Use the ObjectId of the found category
             price: req.body.price,
             isVeg: req.body.isVeg,
             description: req.body.description,
@@ -61,15 +69,25 @@ exports.createMenuItem = async (req, res) => {
         res.status(400).json({ message: err.message }); // Send error response
     }
 };
+
 // Get all menu items
 exports.getAllMenuItems = async (req, res) => {
     try {
-        const menuItems = await MenuItem.find();
-        res.json(menuItems);
+        // Find all menu items and populate the category field with the category data
+        const menuItems = await MenuItem.find().populate('category'); // Populate the category field
+
+        if (menuItems.length === 0) {
+            return res.status(404).json({ message: 'No menu items found.' }); // Handle case when no menu items are found
+        }
+
+        res.status(200).json(menuItems); // Respond with the populated menu items
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        console.error("Error fetching menu items:", err); // Log error details
+        res.status(500).json({ message: err.message }); // Send error response
     }
 };
+
+
 
 // Get a single menu item by ID
 exports.getMenuItemById = async (req, res) => {

@@ -6,8 +6,9 @@ const menuItemSchema = new mongoose.Schema({
         
     },
     category: {
-        type: String,
-        
+        type: mongoose.Schema.Types.ObjectId, // Reference to the Category model
+        ref: 'Category', // Name of the model to reference
+        required: true, // Make it required if every menu item needs a category
     },
     price: {
         type: Number,
