@@ -5,6 +5,7 @@ const categorycontroller=require('../controller/categorycontroller')
 const { upload } = require('../middleware/imageupload');
 const companyController=require('../controller/companycontroller')
 const itemController=require('../controller/itemcontroller')
+const cartController=require('../controller/cartcontroller')
 
 router.post('/register',usercontroller.registerUser);
 router.post('/login',usercontroller.loginUser)
@@ -20,6 +21,8 @@ router.post('/add-company',companyController.addCompany)
 router.get('/get-company',companyController.getCompanyList)
 router.post('/add-item',upload,itemController.createMenuItem)
 router.get('/get-all-item',itemController.getAllMenuItems)
+
+router.post('/add-cart',cartController.addToCart)
 
 
 

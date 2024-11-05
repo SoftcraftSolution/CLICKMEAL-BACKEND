@@ -1,9 +1,10 @@
-const User = require('../model/user.model'); // Adjust the path as necessary
+const User = require('../model/user.model');
+const Company=require('../model/company.model') // Adjust the path as necessary
 
 // Registration API
 exports.registerUser = async (req, res) => {
     try {
-        const { fullName, email, password,phoneNumber } = req.body;
+        const { fullName, email, password, phoneNumber, companyId } = req.body;
 
         // Check if user already exists
         const existingUser = await User.findOne({ email });
@@ -16,13 +17,25 @@ exports.registerUser = async (req, res) => {
             fullName,
             email,
             password,
-            phoneNumber // Storing the plain text password
+            phoneNumber,
+            companyId // Save the companyId for reference
         });
 
         // Save the user to the database
         await newUser.save();
 
-        res.status(201).json({ message: 'User registered successfully', user: newUser });
+        // Fetch the company details using companyId
+        const company = await Company.findById(companyId);
+        const companyName = company ? company.name : null; // Get the company name
+
+        // Respond with the user data along with the company name
+        res.status(201).json({
+            message: 'User registered successfully',
+            user: {
+                ...newUser.toObject(), // Convert Mongoose document to plain object
+                companyName // Include company name in the response
+            }
+        });
     } catch (error) {
         res.status(500).json({ message: 'Error registering user', error });
     }

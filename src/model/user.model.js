@@ -19,6 +19,13 @@ const userSchema = new mongoose.Schema({
     phoneNumber:{
         type:String,
     },
+    companyName:{
+        type:String,
+    },
+    companyId: { 
+        type: mongoose.Schema.Types.ObjectId, // Use ObjectId for references to Subcategory
+        ref: 'Company' // Reference to the Subcategory model
+    },
     createdAt: {
         type: Date,
         default: Date.now, // Default to the current date
