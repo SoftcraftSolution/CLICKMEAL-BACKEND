@@ -9,6 +9,7 @@ const cartController=require('../controller/cartcontroller')
 
 router.post('/register',usercontroller.registerUser);
 router.post('/login',usercontroller.loginUser)
+router.get('/employee-list',usercontroller.getAllUsers)
 
 router.post('/add-category',categorycontroller.addCategory)
 router.post('/add-subcategory', upload,categorycontroller.addSubcategory)

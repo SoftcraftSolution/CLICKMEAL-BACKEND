@@ -69,3 +69,25 @@ exports.loginUser = async (req, res) => {
         res.status(500).json({ message: 'Error logging in', error });
     }
 };
+exports.getAllUsers = async (req, res) => {
+    try {
+        // Fetch all users
+        const users = await User.find();
+
+        // Map through users to get company names
+        const usersWithCompanyNames = await Promise.all(users.map(async (user) => {
+            const company = await Company.findById(user.companyId); // Fetch company details
+            return {
+                ...user.toObject(), // Convert Mongoose document to plain object
+                companyName: company ? company.name : null // Include company name
+            };
+        }));
+
+        res.status(200).json({
+            message: 'Users fetched successfully',
+            users: usersWithCompanyNames
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching users', error });
+    }
+};
