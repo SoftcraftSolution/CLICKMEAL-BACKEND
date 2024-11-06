@@ -7,6 +7,7 @@ const companyController=require('../controller/companycontroller')
 const itemController=require('../controller/itemcontroller')
 const cartController=require('../controller/cartcontroller')
 const bannerController=require('../controller/bannercontroller')
+const orderController=require('../controller/ordercontroller')
 
 router.post('/register',usercontroller.registerUser);
 router.post('/login',usercontroller.loginUser)
@@ -30,6 +31,9 @@ router.get('/my-cart',cartController.getCartByUserId)
 
 router.post('/add-banner', upload,bannerController.addBanner)
 router.get('/get-banner',bannerController.bannerList)
+
+router.post('/order-place',orderController.createOrder)
+router.get('/order-list',orderController.orderList)
 
 
 

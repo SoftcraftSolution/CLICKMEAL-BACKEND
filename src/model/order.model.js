@@ -14,9 +14,9 @@ const orderSchema = new mongoose.Schema({
   },
   items: [
     {
-      mealId: {
+      itemId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Meal',
+        ref: 'MenuItem',
         required: true
       },
       quantity: {
@@ -44,7 +44,7 @@ const orderSchema = new mongoose.Schema({
     enum: ['pending', 'completed', 'failed'],
     default: 'pending'
   },
-  deliveryTime: {
+  deliveryDate: {
     type: Date,
     required: true
   },
