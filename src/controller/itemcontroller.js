@@ -78,7 +78,7 @@ exports.createMenuItem = async (req, res) => {
 exports.getAllMenuItems = async (req, res) => {
     try {
         // Find all menu items and populate the category field with the category data
-        const menuItems = await MenuItem.find().populate('category'); // Populate the category field
+        const menuItems = await MenuItem.find().populate('subcategory'); // Populate the category field
 
         if (menuItems.length === 0) {
             return res.status(404).json({ message: 'No menu items found.' }); // Handle case when no menu items are found

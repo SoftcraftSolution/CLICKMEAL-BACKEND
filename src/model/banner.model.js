@@ -1,32 +1,28 @@
 const mongoose = require('mongoose');
 
 // Create a subcategory schema
-const subcategorySchema = new mongoose.Schema({
+const BannerSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: true, // Ensure that the subcategory name is required
-        unique: true,   // Ensure that the subcategory name is unique within its category
+        required: true, 
+        unique: true,   
     },
     image: {
         type: String,
-        required: true, // Ensure that the subcategory image is required
+        required: true, 
     },
-    categoryId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Category', // Reference to the Category model
-        required: true, // Ensure that categoryId is required
-    },
+
     createdAt: {
         type: Date,
-        default: Date.now, // Default to the current date
+        default: Date.now, 
     },
     updatedAt: {
         type: Date,
-        default: Date.now, // Default to the current date
+        default: Date.now, 
     },
 });
 
-// Create the Subcategory model
-const Banner = mongoose.model('Banner', subcategorySchema);
 
-module.exports = Subcategory;
+const Banner = mongoose.model('Banner', BannerSchema);
+
+module.exports = Banner;
