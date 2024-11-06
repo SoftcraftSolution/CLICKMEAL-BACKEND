@@ -38,7 +38,7 @@ exports.feedbackList = async (req, res) => {
       const feedbackList = await Feedback.find()
         .populate({
           path: 'userId',
-          select: 'name email companyId', // Include companyId in the user details
+          select: 'fullName email companyId', // Include companyId and other user details
           populate: {
             path: 'companyId', // Populate company details based on companyId
             select: 'name address contactNumber' // Include only relevant fields from company
@@ -58,6 +58,7 @@ exports.feedbackList = async (req, res) => {
       res.status(500).json({ message: 'An error occurred while fetching feedback.' });
     }
   };
+  
   
 
 
