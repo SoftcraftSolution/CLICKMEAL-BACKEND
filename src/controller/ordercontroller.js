@@ -54,7 +54,7 @@ exports.orderList = async (req, res) => {
       const orders = await Order.find()
         .populate({
           path: 'userId',
-          select: 'name email companyId',
+          select: 'name fullName email phoneNumber companyId',
           populate: {
             path: 'companyId',
             select: 'name address contactNumber'
@@ -75,7 +75,9 @@ exports.orderList = async (req, res) => {
         userId: {
           _id: order.userId._id,
           name: order.userId.name,
+          fullName: order.userId.fullName, // Include fullName
           email: order.userId.email,
+          phoneNumber: order.userId.phoneNumber, // Include phoneNumber
           companyId: order.userId.companyId ? {
             _id: order.userId.companyId._id,
             name: order.userId.companyId.name,
@@ -93,7 +95,7 @@ exports.orderList = async (req, res) => {
         totalPrice: order.totalPrice,
         paymentMethod: order.paymentMethod,
         paymentStatus: order.paymentStatus,
-        deliveryTime: order.deliveryTime,
+        deliveryDate: order.deliveryDate, // Changed from deliveryTime to deliveryDate
         status: order.status,
         createdAt: order.createdAt,
         updatedAt: order.updatedAt
@@ -109,4 +111,5 @@ exports.orderList = async (req, res) => {
       res.status(500).json({ message: 'An error occurred while fetching the order list.' });
     }
   };
+
   

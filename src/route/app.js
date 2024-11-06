@@ -9,6 +9,7 @@ const cartController=require('../controller/cartcontroller')
 const bannerController=require('../controller/bannercontroller')
 const orderController=require('../controller/ordercontroller')
 const feedbackController=require('../controller/feedbackcontroller')
+const coupanController=require('../controller/coupancontroller')
 
 router.post('/register',usercontroller.registerUser);
 router.post('/login',usercontroller.loginUser)
@@ -38,6 +39,8 @@ router.get('/order-list',orderController.orderList)
 
 router.post('/feedback',feedbackController.Feedback)
 router.get('/feedback-list',feedbackController.feedbackList)
+
+router.post('/coupan-generate',coupanController.createCoupon)
 
 
 
