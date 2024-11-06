@@ -27,7 +27,6 @@ const rewardSchema = new mongoose.Schema({
   },
   image: {
     type: String, // This assumes a file URL or path. Adjust if needed.
-  
   },
   aboutOffer: {
     type: [String], // Array to store multiple "About Offer" points
@@ -37,6 +36,10 @@ const rewardSchema = new mongoose.Schema({
     type: [String], // Array to store multiple "Terms of Use" points
     required: false,
   },
+  createdAt: {
+    type: Date,
+    default: Date.now, // Default to the current date
+  }
 });
 
 module.exports = mongoose.model('Reward', rewardSchema);
