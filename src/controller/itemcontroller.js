@@ -2,7 +2,7 @@ const MenuItem = require('../model/item.model');
 const cloudinary = require('cloudinary').v2; 
 
 // Create a new menu item
-const Category = require('../model/category.model'); // Adjust path as necessary
+const SubCategory = require('../model/subcategory.model'); // Adjust path as necessary
 
 exports.createMenuItem = async (req, res) => {
     try {
@@ -36,16 +36,19 @@ exports.createMenuItem = async (req, res) => {
         const ingredients = Array.isArray(req.body.ingredients) ? req.body.ingredients : JSON.parse(req.body.ingredients || "[]");
         const nutritionalInfo = Array.isArray(req.body.nutritionalInfo) ? req.body.nutritionalInfo : JSON.parse(req.body.nutritionalInfo || "[]");
 
-        // Find the category by its name
-        const category = await Category.findOne({ name: req.body.category });
-        if (!category) {
-            return res.status(404).json({ message: 'Category not found.' }); // Handle case where category doesn't exist
+        // Use the subcategory ID directly from the request body
+        const subcategoryId = req.body.subcategory;
+        
+        // Check if the subcategory ID exists in the database
+        const subcategory = await SubCategory.findById(subcategoryId);
+        if (!subcategory) {
+            return res.status(404).json({ message: 'Subcategory not found.' }); // Handle case where subcategory doesn't exist
         }
 
         // Prepare the menu item data
         const menuItemData = {
             itemName: req.body.itemName,
-            category: category, // Use the ObjectId of the found category
+            subcategory: subcategory._id, // Use the ObjectId of the subcategory
             price: req.body.price,
             isVeg: req.body.isVeg,
             description: req.body.description,
@@ -69,6 +72,7 @@ exports.createMenuItem = async (req, res) => {
         res.status(400).json({ message: err.message }); // Send error response
     }
 };
+
 
 // Get all menu items
 exports.getAllMenuItems = async (req, res) => {

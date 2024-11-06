@@ -5,11 +5,12 @@ const menuItemSchema = new mongoose.Schema({
         type: String,
         
     },
-    category: {
+    subcategory: {
         type: mongoose.Schema.Types.ObjectId, // Reference to the Category model
-        ref: 'Category', // Name of the model to reference
+        ref: 'Subcategory', // Name of the model to reference
         required: true, // Make it required if every menu item needs a category
     },
+    
     price: {
         type: Number,
         min: 0
