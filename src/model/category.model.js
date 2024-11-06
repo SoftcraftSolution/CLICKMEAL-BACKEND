@@ -7,10 +7,7 @@ const categorySchema = new mongoose.Schema({
         required: true, // Ensure that the category name is required
         unique: true,   // Ensure that the category name is unique
     },
-    subcategories: [{ 
-        type: mongoose.Schema.Types.ObjectId, // Use ObjectId for references to Subcategory
-        ref: 'Subcategory' // Reference to the Subcategory model
-    }],
+  
     createdAt: {
         type: Date,
         default: Date.now, // Default to the current date

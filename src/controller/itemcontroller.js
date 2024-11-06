@@ -77,8 +77,16 @@ exports.createMenuItem = async (req, res) => {
 // Get all menu items
 exports.getAllMenuItems = async (req, res) => {
     try {
-        // Find all menu items and populate the category field with the category data
-        const menuItems = await MenuItem.find().populate('subcategory'); // Populate the category field
+        // Find all menu items and populate both subcategory and category fields
+        const menuItems = await MenuItem.find()
+            .populate('subcategory') // Populate the subcategory field
+            .populate({
+                path: 'subcategory', // Specify subcategory path to include category data
+                populate: {
+                    path: 'categoryId', // Populate the category field within subcategory
+                    model: 'Category', // The model to populate category (assuming it's 'Category')
+                },
+            });
 
         if (menuItems.length === 0) {
             return res.status(404).json({ message: 'No menu items found.' }); // Handle case when no menu items are found
