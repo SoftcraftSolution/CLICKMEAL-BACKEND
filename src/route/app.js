@@ -19,7 +19,7 @@ router.get('/employee-list',usercontroller.getAllUsers)
 router.post('/add-category',categorycontroller.addCategory)
 router.post('/add-subcategory', upload,categorycontroller.addSubcategory)
 router.get('/get-category',categorycontroller.CategoryList)
-router.get('/get-categorybyId',categorycontroller.getMenuItemsByCategory)
+router.get('/get-categorybyId',categorycontroller.getMenuItemsByCategoryId)
 router.get('/subcategory-list',categorycontroller.subcategoryList)
 
 

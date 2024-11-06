@@ -98,12 +98,22 @@ exports.addSubcategory = async (req, res) => {
         res.status(500).json({ message: 'An error occurred while adding the subcategory.' });
     }
 };
-exports.getMenuItemsByCategory = async (req, res) => {
-    const { categoryId } = req.query; // Get category ID from request parameters
+exports.getMenuItemsByCategoryId = async (req, res) => {
+    const { categoryId } = req.query; // Get categoryId from request parameters
 
     try {
-        // Find all menu items that belong to the specified category ID
-        const menuItems = await MenuItem.find({ category: categoryId });
+        // Find all subcategories that belong to the specified categoryId
+        const subcategories = await Subcategory.find({ categoryId: categoryId }).select('_id');
+
+        if (subcategories.length === 0) {
+            return res.status(404).json({ message: "No subcategories found for this category." });
+        }
+
+        // Extract the subcategory IDs to search for MenuItems
+        const subcategoryIds = subcategories.map(subcategory => subcategory._id);
+
+        // Find all menu items that belong to any of the subcategory IDs
+        const menuItems = await MenuItem.find({ subcategory: { $in: subcategoryIds } });
 
         // Check if any menu items were found
         if (menuItems.length === 0) {
