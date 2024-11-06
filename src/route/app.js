@@ -8,6 +8,7 @@ const itemController=require('../controller/itemcontroller')
 const cartController=require('../controller/cartcontroller')
 const bannerController=require('../controller/bannercontroller')
 const orderController=require('../controller/ordercontroller')
+const feedbackController=require('../controller/feedbackcontroller')
 
 router.post('/register',usercontroller.registerUser);
 router.post('/login',usercontroller.loginUser)
@@ -34,6 +35,9 @@ router.get('/get-banner',bannerController.bannerList)
 
 router.post('/order-place',orderController.createOrder)
 router.get('/order-list',orderController.orderList)
+
+router.post('/feedback',feedbackController.Feedback)
+router.get('/feedback-list',feedbackController.feedbackList)
 
 
 
