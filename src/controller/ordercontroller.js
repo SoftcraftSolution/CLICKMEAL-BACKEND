@@ -122,70 +122,89 @@ exports.orderList = async (req, res) => {
       // Fetch data for the current day
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(today.getDate() + 1);
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - today.getDay()); // Set to the start of the current week (Sunday)
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 7); // End of the week (Saturday)
   
-      const ordersToday = await Order.countDocuments({
-        createdAt: { $gte: today, $lt: tomorrow },
+      // Calculate revenue for each day of the current week
+      const dailyRevenue = await Order.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: startOfWeek, $lt: endOfWeek }, // Match orders within this week
+          },
+        },
+        {
+          $group: {
+            _id: { $dayOfWeek: '$createdAt' }, // Group by day of the week (1 = Sunday, 7 = Saturday)
+            totalRevenue: { $sum: '$totalPrice' }, // Calculate total revenue per day
+          },
+        },
+        {
+          $sort: { '_id': 1 }, // Sort by day of the week
+        },
+      ]);
+  
+      // Format the daily revenue data
+      const formattedDailyRevenue = Array.from({ length: 7 }, (_, i) => ({
+        day: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][i],
+        totalRevenue: 0,
+      }));
+  
+      // Populate formattedDailyRevenue with data from the query
+      dailyRevenue.forEach(({ _id, totalRevenue }) => {
+        formattedDailyRevenue[_id - 1].totalRevenue = totalRevenue; // _id corresponds to the day of the week (1 = Sunday)
       });
   
-      // Fetch data for the current week
-      const startOfWeek = new Date(today);
-      startOfWeek.setDate(today.getDate() - today.getDay());
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(startOfWeek.getDate() + 7);
+      // Other data for the overview
+      const ordersToday = await Order.countDocuments({
+        createdAt: { $gte: today, $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000) }, // Today's orders
+      });
   
       const ordersThisWeek = await Order.countDocuments({
-        createdAt: { $gte: startOfWeek, $lt: endOfWeek },
+        createdAt: { $gte: startOfWeek, $lt: endOfWeek }, // Orders for this week
       });
   
-      // Fetch data for the current month
       const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
       const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-  
       const ordersThisMonth = await Order.countDocuments({
         createdAt: { $gte: startOfMonth, $lt: endOfMonth },
       });
   
-      // Fetch total revenue (assuming you have a 'totalPrice' field in orders)
       const totalRevenue = await Order.aggregate([
         {
           $group: {
             _id: null,
-            total: { $sum: '$totalPrice' }, // Replace with your order total field
+            total: { $sum: '$totalPrice' }, // Total revenue across all orders
           },
         },
       ]);
   
-      // Fetch total companies and employees
       const totalCompanies = await Company.countDocuments();
       const totalEmployees = await Employee.countDocuments();
   
-      // Fetch recent orders (latest 5) with user details and companyName populated
       const recentOrders = await Order.find()
         .sort({ createdAt: -1 })
         .limit(5)
         .populate({
-          path: 'userId', // Replace with the actual field name in your Order schema that references the User model
-          select: 'fullName email phoneNumber companyId', // Select necessary fields from User
+          path: 'userId',
+          select: 'fullName email phoneNumber companyId',
           populate: {
-            path: 'companyId', // Assuming User references Company via companyId
-            select: 'name', // Fetch companyName from the Company model
+            path: 'companyId',
+            select: 'name',
           },
         });
   
-      // Fetch average rating and total review count from Feedback model
       const feedbackStats = await Feedback.aggregate([
         {
           $group: {
             _id: null,
-            averageRating: { $avg: '$rating' }, // Replace 'rating' with your actual rating field
+            averageRating: { $avg: '$rating' },
             totalReviews: { $sum: 1 },
           },
         },
       ]);
   
-      // Prepare the response with populated recent orders
       const formattedRecentOrders = recentOrders.map(order => ({
         employeeName: order.userId?.fullName || 'N/A',
         emailAddress: order.userId?.email || 'N/A',
@@ -204,6 +223,7 @@ exports.orderList = async (req, res) => {
         recentOrders: formattedRecentOrders,
         averageReview: feedbackStats[0]?.averageRating || 0,
         reviewCount: feedbackStats[0]?.totalReviews || 0,
+        weeklyRevenueBreakdown: formattedDailyRevenue, // Revenue breakdown for each day of the current week
       });
     } catch (error) {
       console.error('Error fetching order insights:', error);

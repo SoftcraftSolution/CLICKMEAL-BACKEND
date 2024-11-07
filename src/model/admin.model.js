@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 
 // Define the registration schema with timestamps
 const AdminSchema = new mongoose.Schema({
-
     email: {
         type: String,
         required: true,

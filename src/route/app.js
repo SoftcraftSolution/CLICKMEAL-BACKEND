@@ -11,6 +11,7 @@ const orderController=require('../controller/ordercontroller')
 const feedbackController=require('../controller/feedbackcontroller')
 const coupanController=require('../controller/coupancontroller')
 const rewardController=require('../controller/rewardcontroller')
+const admincontroller=require('../controller/admincontroller')
 
 router.post('/register',usercontroller.registerUser);
 router.post('/login',usercontroller.loginUser)
@@ -47,6 +48,11 @@ router.get('/coupan-list',coupanController.getCoupons)
 
 router.post('/add-reward',upload,rewardController.createReward)
 router.get('/reward-list',rewardController.getAllRewards)
+
+router.post('/admin-login',admincontroller.login)
+router.post('/admin-forgot-password',admincontroller.forgotPassword)
+router.post('/admin-verify-code',admincontroller.verifyCode)
+router.post('/admin-reset-password',admincontroller.resetPassword)
 
 
 
