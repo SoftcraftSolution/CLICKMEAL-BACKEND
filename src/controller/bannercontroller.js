@@ -29,10 +29,14 @@ exports.addBanner = async (req, res) => {
   
       // Find and update the existing banner
       const updatedBanner = await Banner.findOneAndUpdate(
-        {}, // Finds the first document (adjust this if you have criteria to find a specific document)
+        {}, // Finds the first document (adjust the query to target a specific document if needed)
         { name, ...(imageUrl && { image: imageUrl }) }, // Update the name and image (if uploaded)
-        { new: true, upsert: true } // Create if not found, return the modified document
+        { new: true } // Return the modified document but do not create a new one
       );
+  
+      if (!updatedBanner) {
+        return res.status(404).json({ message: 'No existing banner found to update.' });
+      }
   
       res.status(200).json({
         message: 'Banner updated successfully',
@@ -43,6 +47,7 @@ exports.addBanner = async (req, res) => {
       res.status(500).json({ message: 'An error occurred while updating the banner.' });
     }
   };
+  
   
 exports.bannerList = async (req, res) => {
     try {
