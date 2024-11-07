@@ -42,6 +42,7 @@ router.post('/feedback',feedbackController.Feedback)
 router.get('/feedback-list',feedbackController.feedbackList)
 
 router.post('/coupan-generate',coupanController.createCoupon)
+router.get('/coupan-list',coupanController.getCoupons)
 
 router.post('/add-reward',upload,rewardController.createReward)
 router.get('/reward-list',rewardController.getAllRewards)

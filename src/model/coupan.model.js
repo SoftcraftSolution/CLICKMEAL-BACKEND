@@ -24,11 +24,15 @@ const couponSchema = new mongoose.Schema({
     required: true,
     enum: ['employee', 'company'], // You can extend these types if necessary
   },
-  companyId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Company', // Reference to the Company model
-    required: true,
-  },
+ employeeName:{
+  type:String
+ },
+ employeeEmail:{
+  type:String
+ },
+ companyName:{
+  type:String
+ },
   createdAt: {
     type: Date,
     default: Date.now,
