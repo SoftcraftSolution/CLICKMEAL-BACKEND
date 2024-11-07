@@ -3,7 +3,7 @@ const Coupon = require('../model/coupan.model');
 // Create a new coupon
 exports.createCoupon = async (req, res) => {
   try {
-    const { couponName, redemptionLimit, description, expiryDate, couponType, employeeName, employeeEmail, companyName } = req.body;
+    const { couponName, redemptionLimit, description, expiryDate, couponType, employeeName, employeeEmail, companyId } = req.body;
 
     // Check if all required fields are provided
     if (!couponName || !redemptionLimit || !expiryDate || !couponType) {
@@ -19,7 +19,7 @@ exports.createCoupon = async (req, res) => {
       couponType,
       employeeName,
       employeeEmail,
-      companyName,
+      companyId,
     });
 
     // Save the coupon to the database

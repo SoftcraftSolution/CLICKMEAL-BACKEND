@@ -30,7 +30,7 @@ const couponSchema = new mongoose.Schema({
  employeeEmail:{
   type:String
  },
- companyName:{
+ companyId:{
   type:String
  },
   createdAt: {
