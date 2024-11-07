@@ -37,6 +37,7 @@ router.get('/get-banner',bannerController.bannerList)
 
 router.post('/order-place',orderController.createOrder)
 router.get('/order-list',orderController.orderList)
+router.get('/order-insight',orderController.orderInsight)
 
 router.post('/feedback',feedbackController.Feedback)
 router.get('/feedback-list',feedbackController.feedbackList)
