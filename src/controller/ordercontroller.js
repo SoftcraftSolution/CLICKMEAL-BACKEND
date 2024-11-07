@@ -230,5 +230,25 @@ exports.orderList = async (req, res) => {
       res.status(500).json({ message: 'An error occurred while fetching order insights.' });
     }
   };
+  exports.myOrder = async (req, res) => {
+    const { userId } = req.query; // Assuming userId is passed as a URL parameter
   
+    try {
+      // Fetch orders for the given userId
+      const orders = await Order.find({ userId }).populate('items'); // Adjust 'items' if you need to populate related data
+  
+      if (!orders || orders.length === 0) {
+        return res.status(404).json({ message: 'No orders found for this user.' });
+      }
+  
+      res.status(200).json({
+        message: 'Orders fetched successfully.',
+        orders,
+      });
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      res.status(500).json({ message: 'An error occurred while fetching orders.' });
+    }
+  };
+
   
