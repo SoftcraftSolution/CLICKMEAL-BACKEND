@@ -6,6 +6,9 @@ const CompanySchema = new mongoose.Schema({
         type: String, 
         required: true 
     },
+    email:{
+        type:String,
+    },
     deliveryAddress: { 
         type: String, 
         required: true 

@@ -12,6 +12,7 @@ const feedbackController=require('../controller/feedbackcontroller')
 const coupanController=require('../controller/coupancontroller')
 const rewardController=require('../controller/rewardcontroller')
 const admincontroller=require('../controller/admincontroller')
+const qrcontroller=require('../controller/qrcontroller')
 
 router.post('/register',usercontroller.registerUser);
 router.post('/login',usercontroller.loginUser)
@@ -55,6 +56,8 @@ router.post('/admin-login',admincontroller.login)
 router.post('/admin-forgot-password',admincontroller.forgotPassword)
 router.post('/admin-verify-code',admincontroller.verifyCode)
 router.post('/admin-reset-password',admincontroller.resetPassword)
+
+router.post('/qr-send-email',qrcontroller.createAndSendQRCode)
 
 
 

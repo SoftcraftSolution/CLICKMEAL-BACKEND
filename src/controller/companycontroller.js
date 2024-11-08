@@ -3,7 +3,7 @@ const Company = require('../model/company.model');
 
 exports.addCompany = async (req, res) => {
     try {
-        const { name, deliveryAddress, numberOfEmployees } = req.body;
+        const { name,email, deliveryAddress, numberOfEmployees } = req.body;
 
         // Validate required fields
         if (!name || !deliveryAddress) {
@@ -13,6 +13,7 @@ exports.addCompany = async (req, res) => {
         // Create new company
         const newCompany = new Company({
             name,
+            email,
             deliveryAddress,
             numberOfEmployees: numberOfEmployees || 0, // Set to 0 if not provided
         });
