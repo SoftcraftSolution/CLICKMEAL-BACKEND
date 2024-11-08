@@ -69,7 +69,7 @@ exports.addCompany = async (req, res) => {
     const savedCompany = await newCompany.save();
 
     // Generate a unique link or identifier for the company (modify as needed)
-    const uniqueCompanyLink = `https://click-meal-website.vercel.app/?companyId=${savedCompany._id}`;
+    const uniqueCompanyLink = `https://click-meal-website.vercel.app/?companyId=${savedCompany._id}&name=${name}`;
 
     // Generate QR Code for the unique company link
     const qrCodeDataURL = await generateQRCode(uniqueCompanyLink);
