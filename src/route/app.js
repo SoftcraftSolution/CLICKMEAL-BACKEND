@@ -13,6 +13,7 @@ const coupanController=require('../controller/coupancontroller')
 const rewardController=require('../controller/rewardcontroller')
 const admincontroller=require('../controller/admincontroller')
 const qrcontroller=require('../controller/qrcontroller')
+const customizemealController=require('../controller/customizemealcontroller')
 
 router.post('/register',usercontroller.registerUser);
 router.post('/login',usercontroller.loginUser)
@@ -58,6 +59,9 @@ router.post('/admin-verify-code',admincontroller.verifyCode)
 router.post('/admin-reset-password',admincontroller.resetPassword)
 
 router.post('/qr-send-email',qrcontroller.createAndSendQRCode)
+
+router.post('/add-customize-meal',upload,customizemealController.createCustomizeMeal)
+router.get('/get-customize-meal',customizemealController.getAllCustomizeMeals)
 
 
 
