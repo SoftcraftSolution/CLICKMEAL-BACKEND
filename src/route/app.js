@@ -29,6 +29,7 @@ router.get('/subcategory-list',categorycontroller.subcategoryList)
 
 router.post('/add-company',companyController.addCompany)
 router.get('/get-company',companyController.getCompanyList)
+router.delete('/delete-company',companyController.deleteCompany)
 router.post('/add-item',upload,itemController.createMenuItem)
 router.get('/get-all-item',itemController.getAllMenuItems)
 router.get('/item-by-id',itemController.getMenuItemById)

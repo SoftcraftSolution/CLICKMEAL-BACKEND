@@ -113,3 +113,23 @@ exports.getCompanyList = async (req, res) => {
         });
     }
 };
+// Delete Company API
+exports.deleteCompany = async (req, res) => {
+  try {
+      const { id } = req.query;
+
+      // Find and delete the company by id
+      const deletedCompany = await Company.findByIdAndDelete(id);
+
+      if (!deletedCompany) {
+          return res.status(404).json({ message: 'Company not found' });
+      }
+
+      res.status(200).json({
+          message: 'Company deleted successfully',
+          company: deletedCompany // Optionally return the deleted company details
+      });
+  } catch (error) {
+      res.status(500).json({ message: 'Error deleting company', error: error.message });
+  }
+};
