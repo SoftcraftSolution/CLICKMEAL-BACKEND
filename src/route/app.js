@@ -56,7 +56,7 @@ router.delete('/delete-coupan',coupanController.deleteCoupon)
 
 router.post('/add-reward',upload,rewardController.createReward)
 router.get('/reward-list',rewardController.getAllRewards)
-router.delete('/delete-user',rewardController.deleteReward)
+router.delete('/delete-reward',rewardController.deleteReward)
 
 router.post('/admin-login',admincontroller.login)
 router.post('/admin-forgot-password',admincontroller.forgotPassword)
