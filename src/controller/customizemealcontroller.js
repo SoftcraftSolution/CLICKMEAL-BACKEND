@@ -83,3 +83,26 @@ exports.getAllCustomizeMeals = async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+exports.deleteCustomizeMeal = async (req, res) => {
+    try {
+        const mealId = req.query.id; // Get the ID from query parameters
+
+        // Validate if ID is provided
+        if (!mealId) {
+            return res.status(400).json({ message: 'Meal ID is required.' });
+        }
+
+        // Attempt to find and delete the customize meal
+        const deletedMeal = await CustomizeMeal.findByIdAndDelete(mealId);
+
+        if (!deletedMeal) {
+            return res.status(404).json({ message: 'Customize meal not found.' });
+        }
+
+        // Respond with success message
+        res.status(200).json({ message: 'Customize meal deleted successfully.' });
+    } catch (error) {
+        console.error('Error deleting customize meal:', error);
+        res.status(500).json({ message: 'An error occurred while deleting the customize meal.', error });
+    }
+};

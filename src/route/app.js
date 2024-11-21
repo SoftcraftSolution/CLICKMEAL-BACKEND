@@ -52,9 +52,11 @@ router.get('/feedback-list',feedbackController.feedbackList)
 
 router.post('/coupan-generate',coupanController.createCoupon)
 router.get('/coupan-list',coupanController.getCoupons)
+router.delete('/delete-coupan',coupanController.deleteCoupon)
 
 router.post('/add-reward',upload,rewardController.createReward)
 router.get('/reward-list',rewardController.getAllRewards)
+router.delete('/delete-user',rewardController.deleteReward)
 
 router.post('/admin-login',admincontroller.login)
 router.post('/admin-forgot-password',admincontroller.forgotPassword)
@@ -65,6 +67,7 @@ router.post('/qr-send-email',qrcontroller.createAndSendQRCode)
 
 router.post('/add-customize-meal',upload,customizemealController.createCustomizeMeal)
 router.get('/get-customize-meal',customizemealController.getAllCustomizeMeals)
+router.delete('/delete-customize-meal',customizemealController.deleteCustomizeMeal)
 
 
 

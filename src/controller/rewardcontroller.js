@@ -68,4 +68,26 @@ exports.getAllRewards = async (req, res) => {
 };
 
 
-  
+exports.deleteReward = async (req, res) => {
+  try {
+    const rewardId = req.query.id; // Get the ID from query parameters
+
+    // Validate if ID is provided
+    if (!rewardId) {
+      return res.status(400).json({ message: 'Reward ID is required.' });
+    }
+
+    // Attempt to find and delete the reward
+    const deletedReward = await Reward.findByIdAndDelete(rewardId);
+
+    if (!deletedReward) {
+      return res.status(404).json({ message: 'Reward not found.' });
+    }
+
+    // Respond with success message
+    res.status(200).json({ message: 'Reward deleted successfully.' });
+  } catch (error) {
+    console.error('Error deleting reward:', error);
+    res.status(500).json({ message: 'An error occurred while deleting the reward.', error });
+  }
+};
