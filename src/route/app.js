@@ -33,6 +33,7 @@ router.delete('/delete-company',companyController.deleteCompany)
 router.post('/add-item',upload,itemController.createMenuItem)
 router.get('/get-all-item',itemController.getAllMenuItems)
 router.get('/item-by-id',itemController.getMenuItemById)
+router.delete('/delete-item',itemController.deleteMenuItemById)
 
 router.post('/add-cart',cartController.addMultipleToCart)
 router.get('/my-cart',cartController.getCartByUserId)

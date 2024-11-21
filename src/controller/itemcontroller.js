@@ -138,7 +138,12 @@ exports.updateMenuItemById = async (req, res) => {
 // Delete a menu item by ID
 exports.deleteMenuItemById = async (req, res) => {
     try {
-        const menuItem = await MenuItem.findByIdAndDelete(req.params.id);
+        const menuItemId = req.query.id; // Get ID from query parameters
+        if (!menuItemId) {
+            return res.status(400).json({ message: 'Menu item ID is required' });
+        }
+
+        const menuItem = await MenuItem.findByIdAndDelete(menuItemId);
         if (!menuItem) {
             return res.status(404).json({ message: 'Menu item not found' });
         }
