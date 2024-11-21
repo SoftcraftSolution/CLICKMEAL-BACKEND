@@ -91,3 +91,23 @@ exports.getAllUsers = async (req, res) => {
         res.status(500).json({ message: 'Error fetching users', error });
     }
 };
+// Delete User API
+exports.deleteUser = async (req, res) => {
+    try {
+        const { id } = req.query;
+
+        // Find and delete the user by id
+        const deletedUser = await User.findByIdAndDelete(id);
+
+        if (!deletedUser) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.status(200).json({
+            message: 'User deleted successfully',
+            user: deletedUser // Optionally return the deleted user details
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Error deleting user', error });
+    }
+};

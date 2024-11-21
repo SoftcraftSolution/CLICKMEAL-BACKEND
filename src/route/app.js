@@ -18,6 +18,7 @@ const customizemealController=require('../controller/customizemealcontroller')
 router.post('/register',usercontroller.registerUser);
 router.post('/login',usercontroller.loginUser)
 router.get('/employee-list',usercontroller.getAllUsers)
+router.delete('/delete-user',usercontroller.deleteUser)
 
 router.post('/add-category',categorycontroller.addCategory)
 router.post('/add-subcategory', upload,categorycontroller.addSubcategory)
