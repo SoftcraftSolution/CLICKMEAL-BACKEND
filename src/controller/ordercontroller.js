@@ -53,28 +53,35 @@ exports.createOrder = async (req, res) => {
   }
 };
 exports.orderList = async (req, res) => {
-    try {
-      // Retrieve all orders and populate user, company, and item details
-      const orders = await Order.find()
-        .populate({
-          path: 'userId',
-          select: 'name fullName email phoneNumber companyId',
-          populate: {
-            path: 'companyId',
-            select: 'name address contactNumber'
-          }
-        })
-        .populate({
-          path: 'items.itemId',
-          select: 'itemName price' // Select itemName and price fields
-        });
-  
-      if (orders.length === 0) {
-        return res.status(404).json({ message: 'No orders found.' });
+  try {
+    // Retrieve all orders and populate user, company, and item details
+    const orders = await Order.find()
+      .populate({
+        path: 'userId',
+        select: 'name fullName email phoneNumber companyId',
+        populate: {
+          path: 'companyId',
+          select: 'name address contactNumber'
+        }
+      })
+      .populate({
+        path: 'items.itemId',
+        select: 'itemName price' // Select itemName and price fields
+      });
+
+    if (orders.length === 0) {
+      return res.status(404).json({ message: 'No orders found.' });
+    }
+
+    // Format the response data
+    const formattedOrders = orders.map(order => {
+      // Check if userId is not null or undefined
+      if (!order.userId) {
+        return null; // Skip this order if userId is missing
       }
-  
-      // Format the response data
-      const formattedOrders = orders.map(order => ({
+
+      // Format order details
+      return {
         orderId: order._id,
         userId: {
           _id: order.userId._id,
@@ -87,12 +94,12 @@ exports.orderList = async (req, res) => {
             name: order.userId.companyId.name,
             address: order.userId.companyId.address,
             contactNumber: order.userId.companyId.contactNumber
-          } : null
+          } : null // Check if companyId exists
         },
         items: order.items.map(item => ({
-          itemId: item.itemId._id,
-          name: item.itemId.itemName, // Include itemName
-          price: item.itemId.price, // Include item price
+          itemId: item.itemId ? item.itemId._id : null, // Check if itemId exists
+          name: item.itemId ? item.itemId.itemName : null, // Include itemName
+          price: item.itemId ? item.itemId.price : null, // Include item price
           quantity: item.quantity,
           extras: item.extras
         })),
@@ -103,18 +110,20 @@ exports.orderList = async (req, res) => {
         status: order.status,
         createdAt: order.createdAt,
         updatedAt: order.updatedAt
-      }));
-  
-      // Send response with orders in the requested format
-      res.status(200).json({
-        message: 'Orders fetched successfully',
-        orders: formattedOrders
-      });
-    } catch (err) {
-      console.error('Error fetching order list:', err);
-      res.status(500).json({ message: 'An error occurred while fetching the order list.' });
-    }
-  };
+      };
+    }).filter(order => order !== null); // Remove null orders where userId is missing
+
+    // Send response with orders in the requested format
+    res.status(200).json({
+      message: 'Orders fetched successfully',
+      orders: formattedOrders
+    });
+  } catch (err) {
+    console.error('Error fetching order list:', err);
+    res.status(500).json({ message: 'An error occurred while fetching the order list.' });
+  }
+};
+
 
   
   exports.orderInsight = async (req, res) => {
