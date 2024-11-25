@@ -4,7 +4,7 @@ const orderSchema = new mongoose.Schema({
   orderId: {
     type: mongoose.Schema.Types.ObjectId,
     default: new mongoose.Types.ObjectId(),
-    unique: true,
+
     required: true
   },
   userId: {
