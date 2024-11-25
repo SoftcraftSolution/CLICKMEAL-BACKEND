@@ -260,4 +260,50 @@ exports.orderList = async (req, res) => {
     }
   };
 
+  exports.getAllCompaniesWithOrderCount = async (req, res) => {
+    try {
+      // Fetch all companies
+      const companies = await Company.find();
+
+      if (!companies || companies.length === 0) {
+        return res.status(404).json({ message: 'No companies found' });
+      }
   
+      // Step 2: Create a result array
+      const result = [];
+  
+      // Step 3: Loop through each company
+      for (const company of companies) {
+        // Find users associated with the current company
+        const users = await User.find({ companyId: company._id });
+  
+        if (!users || users.length === 0) {
+          result.push({
+            companyName: company.name,
+            orderCount: 0,
+            orders: [],
+          });
+          continue;
+        }
+  
+        // Extract user IDs for the company
+        const userIds = users.map(user => user._id);
+  
+        // Find orders for these user IDs
+        const orders = await Order.find({ userId: { $in: userIds } });
+  
+        // Add the company's orders to the result
+        result.push({
+          companyName: company.name,
+          orderCount: orders.length,
+          orders,
+        });
+      }
+  
+      // Step 4: Return the grouped orders
+      res.json(result);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  };

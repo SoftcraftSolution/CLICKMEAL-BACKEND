@@ -46,6 +46,7 @@ router.post('/order-place',orderController.createOrder)
 router.get('/order-list',orderController.orderList)
 router.get('/order-insight',orderController.orderInsight)
 router.get('/my-order',orderController.myOrder)
+router.get('/get-order-by-company',orderController.getAllCompaniesWithOrderCount)
 
 router.post('/feedback',feedbackController.Feedback)
 router.get('/feedback-list',feedbackController.feedbackList)
