@@ -48,7 +48,7 @@ router.get('/order-list',orderController.orderList)
 router.get('/order-insight',orderController.orderInsight)
 router.get('/my-order',orderController.myOrder)
 router.get('/get-order-by-company',orderController.getAllCompaniesWithOrderCount)
-router.get('/export-orders', orderController.getOrdersByCompanyName);
+router.get('/export-orders', orderController.getOrdersByCompanyId);
 
 
 router.post('/feedback',feedbackController.Feedback)

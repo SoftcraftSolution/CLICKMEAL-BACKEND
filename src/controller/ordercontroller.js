@@ -378,26 +378,26 @@ exports.orderList = async (req, res) => {
   };
  
 
-  exports.getOrdersByCompanyName = async (req, res) => {
+ // Ensure this is installed: npm install exceljs
+
+  exports.getOrdersByCompanyId = async (req, res) => {
       try {
-          const { companyName } = req.query;
+          const { companyId } = req.query;
   
-          if (!companyName) {
-              return res.status(400).json({ message: 'Company name is required' });
+          if (!companyId) {
+              return res.status(400).json({ message: 'Company ID is required' });
           }
   
-          // Find the company by name
-          const company = await Company.findOne({ name: companyName });
-  
+          // Find the company by ID
+          const company = await Company.findById(companyId);
           if (!company) {
-              return res.status(404).json({ message: `No company found with name ${companyName}` });
+              return res.status(404).json({ message: `No company found with ID ${companyId}` });
           }
   
           // Fetch users associated with the company
-          const users = await User.find({ companyId: company._id });
-  
+          const users = await User.find({ companyId });
           if (!users.length) {
-              return res.status(404).json({ message: `No users found for company ${companyName}` });
+              return res.status(404).json({ message: `No users found for company with ID ${companyId}` });
           }
   
           // Extract user IDs
@@ -405,9 +405,8 @@ exports.orderList = async (req, res) => {
   
           // Fetch orders for these users
           const orders = await Order.find({ userId: { $in: userIds } }).populate('items.itemId');
-  
           if (!orders.length) {
-              return res.status(404).json({ message: `No orders found for company ${companyName}` });
+              return res.status(404).json({ message: `No orders found for company with ID ${companyId}` });
           }
   
           // Create an Excel workbook and worksheet
@@ -434,13 +433,16 @@ exports.orderList = async (req, res) => {
                       userId: order.userId.toString(),
                       deliveryDate: order.deliveryDate.toISOString().split('T')[0],
                       status: order.status,
-                      itemName: item.itemId.itemName || 'Unknown', // Assuming MenuItem has a `name` field
+                      itemName: item.itemId?.itemName || 'Unknown', // Use optional chaining to avoid errors
                       quantity: item.quantity,
                       extras: item.extras.join(', '), // Join extras array into a comma-separated string
                       totalPrice: order.totalPrice,
                   });
               }
           }
+  
+          // Add styling (optional)
+          worksheet.getRow(1).font = { bold: true }; // Bold headers
   
           // Set response headers for Excel file
           res.setHeader(
@@ -449,7 +451,7 @@ exports.orderList = async (req, res) => {
           );
           res.setHeader(
               'Content-Disposition',
-              `attachment; filename=orders_summary_${company.name}.xlsx`
+              `attachment; filename=orders_summary_${company.name.replace(/\s+/g, '_')}.xlsx`
           );
   
           // Write the workbook to the response
@@ -457,7 +459,8 @@ exports.orderList = async (req, res) => {
           res.end();
       } catch (error) {
           console.error('Error exporting orders:', error);
-          res.status(500).json({ message: 'Error exporting orders', error });
+          res.status(500).json({ message: 'Error exporting orders', error: error.message });
       }
   };
+  
   
