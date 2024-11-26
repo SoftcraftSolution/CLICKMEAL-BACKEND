@@ -72,6 +72,7 @@ router.post('/qr-send-email',qrcontroller.createAndSendQRCode)
 router.post('/add-customize-meal',upload,customizemealController.createCustomizeMeal)
 router.get('/get-customize-meal',customizemealController.getAllCustomizeMeals)
 router.delete('/delete-customize-meal',customizemealController.deleteCustomizeMeal)
+router.get('/get-customizemeal-by-companyId',customizemealController.getCustomizeMealsByCompany)
 
 
 

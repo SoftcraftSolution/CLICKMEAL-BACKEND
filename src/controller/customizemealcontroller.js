@@ -106,3 +106,35 @@ exports.deleteCustomizeMeal = async (req, res) => {
         res.status(500).json({ message: 'An error occurred while deleting the customize meal.', error });
     }
 };
+exports.getCustomizeMealsByCompany = async (req, res) => {
+    try {
+        const { companyId } = req.query; // Get the companyId from query parameters
+
+        // Validate that companyId is provided
+        if (!companyId) {
+            return res.status(400).json({ message: 'Company ID is required.' });
+        }
+
+        // Fetch customized meals associated with the given companyId
+        const meals = await CustomizeMeal.find({ companyId })
+            .populate('subcategory', 'name') // Populate subcategory details
+            .populate('companyId', 'name'); // Populate company details
+
+        // Check if meals exist for the company
+        if (!meals || meals.length === 0) {
+            return res.status(404).json({ message: 'No customized meals found for the specified company.' });
+        }
+
+        // Return the meals in the response
+        res.status(200).json({
+            message: 'Customized meals retrieved successfully.',
+            meals,
+        });
+    } catch (error) {
+        console.error('Error fetching meals by companyId:', error);
+        res.status(500).json({
+            message: 'An error occurred while fetching customized meals.',
+            error: error.message,
+        });
+    }
+};
