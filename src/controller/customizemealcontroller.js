@@ -1,10 +1,12 @@
 const CustomizeMeal = require('../model/customizemeal.model');
 const cloudinary = require('cloudinary').v2; 
+const User = require('../model/user.model'); // User schema
+const nodemailer = require('nodemailer');
 
 // Create a new menu item
 const SubCategory = require('../model/subcategory.model'); // Adjust path as necessary
 
-exports.createCustomizeMeal= async (req, res) => {
+exports.createCustomizeMeal = async (req, res) => {
     try {
         let image = null;
 
@@ -38,8 +40,8 @@ exports.createCustomizeMeal= async (req, res) => {
 
         // Use the subcategory ID directly from the request body
         const subcategoryId = req.body.subcategory;
-        const companyId=req.body.companyId;
-        
+        const companyId = req.body.companyId;
+
         // Check if the subcategory ID exists in the database
         const subcategory = await SubCategory.findById(subcategoryId);
         if (!subcategory) {
@@ -55,23 +57,72 @@ exports.createCustomizeMeal= async (req, res) => {
             description: req.body.description,
             ingredients: ingredients, // Use parsed ingredients
             nutritionalInfo: nutritionalInfo,
-            companyId:req.body.companyId, // Use parsed nutritional info
+            companyId: companyId, // Use parsed nutritional info
             image: image, // Set image URL from Cloudinary if provided
             createdAt: Date.now(),
-            updatedAt: Date.now()
+            updatedAt: Date.now(),
         };
 
         // Log the data being saved
-        console.log("customize meal Data to be saved:", customizemealData);
+        console.log("Customize meal data to be saved:", customizemealData);
 
         // Create the menu item using the constructed menuItemData
         const menuItem = new CustomizeMeal(customizemealData);
 
         await menuItem.save(); // Save the menu item to the database
-        res.status(201).json(menuItem); // Respond with the created menu item
+
+        // Fetch all users associated with the companyId
+        const users = await User.find({ companyId });
+
+        if (!users || users.length === 0) {
+            console.warn('No users found for this company.');
+            return res.status(201).json({ message: 'Customize meal created successfully, but no users found to notify.' });
+        }
+
+        console.log(`Notifying ${users.length} users about the new customize meal.`);
+
+        // Nodemailer configuration
+        const transporter = nodemailer.createTransport({
+            service: 'gmail', // Use your email service
+            auth: {
+                user: process.env.EMAIL_USERNAME, // Your email address
+                pass: process.env.EMAIL_PASSWORD, // Your email password or app password
+            },
+        });
+
+        // Email subject and body
+        const emailSubject = `New Customize Meal Added: ${menuItem.itemName}`;
+        const emailText = `
+            Hello,
+            
+            We have added a new customized meal to our menu!
+            
+            Item Name: ${menuItem.itemName}
+            Description: ${menuItem.description}
+            Price: $${menuItem.price}
+            
+            Check it out now!
+
+            Best regards,
+            Your Company Team
+        `;
+
+        // Send emails to all users
+        for (const user of users) {
+            await transporter.sendMail({
+                from: process.env.EMAIL_USERNAME, // Sender email address
+                to: user.email, // Recipient email address
+                subject: emailSubject, // Email subject
+                text: emailText, // Email body
+            });
+        }
+
+        console.log('Emails sent successfully!');
+
+        res.status(201).json({ message: 'Customize meal created successfully and users notified.', menuItem });
     } catch (err) {
-        console.error("Error creating menu item:", err); // Log error details
-        res.status(400).json({ message: err.message }); // Send error response
+        console.error("Error creating customize meal:", err); // Log error details
+        res.status(500).json({ message: 'Error creating customize meal.', error: err.message }); // Send error response
     }
 };
 exports.getAllCustomizeMeals = async (req, res) => {
