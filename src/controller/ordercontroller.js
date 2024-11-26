@@ -18,13 +18,22 @@ exports.createOrder = async (req, res) => {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
-    // Calculate the total price based on the item prices and quantities
+    // Calculate the total price and enrich items with item names
     let totalPrice = 0;
+    const enrichedItems = [];
     for (const item of items) {
       const menuItem = await MenuItem.findById(item.itemId); // Fetch item details by itemId
       if (!menuItem) {
         return res.status(404).json({ message: `Menu item with ID ${item.itemId} not found.` });
       }
+
+      // Add item name and other details to the enrichedItems array
+      enrichedItems.push({
+        itemId: menuItem._id,
+        itemName: menuItem.itemName,
+        quantity: item.quantity,
+        extras: item.extras || [],
+      });
 
       // Multiply the item price by quantity and add it to totalPrice
       totalPrice += menuItem.price * item.quantity;
@@ -33,7 +42,11 @@ exports.createOrder = async (req, res) => {
     // Create a new order object based on the provided data
     const newOrder = new Order({
       userId,
-      items,
+      items: enrichedItems.map(item => ({
+        itemId: item.itemId,
+        quantity: item.quantity,
+        extras: item.extras,
+      })),
       totalPrice,
       paymentMethod,
       paymentStatus: 'completed', // Default payment status
@@ -70,9 +83,9 @@ exports.createOrder = async (req, res) => {
       Delivery Date: ${new Date(deliveryDate).toLocaleDateString()}
 
       Items Ordered:
-      ${items
+      ${enrichedItems
         .map((item, index) => {
-          return `${index + 1}. ${item.quantity} x ${item.itemName || 'Unknown Item'}`;
+          return `${index + 1}. ${item.quantity} x ${item.itemName}`;
         })
         .join('\n')}
 
@@ -92,17 +105,21 @@ exports.createOrder = async (req, res) => {
 
     console.log(`Order confirmation email sent to ${user.email}`);
 
-    // Return a success response with the created order and total price
+    // Return a success response with the created order and enriched items
     res.status(201).json({
       message: 'Order created successfully and email sent',
-      order: newOrder,
-      totalPrice: totalPrice, // Return the calculated total price
+      order: {
+        ...newOrder.toObject(),
+        items: enrichedItems, // Include enriched items with item names
+      },
+      totalPrice,
     });
   } catch (err) {
     console.error('Error creating order:', err);
     res.status(500).json({ message: 'An error occurred while creating the order.' });
   }
 };
+
 
 exports.orderList = async (req, res) => {
   try {
