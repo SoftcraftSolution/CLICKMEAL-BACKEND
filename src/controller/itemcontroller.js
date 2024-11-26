@@ -4,7 +4,7 @@ const User=require('../model/user.model')
 // Create a new menu item
 const SubCategory = require('../model/subcategory.model'); // Adjust path as necessary
 
-const nodemailer = require('nodemailer'); // Ensure Nodemailer is installed
+const nodemailer = require('nodemailer');
 
 exports.createMenuItem = async (req, res) => {
     try {
@@ -13,8 +13,7 @@ exports.createMenuItem = async (req, res) => {
         // Check if an image is received in the request
         if (req.files && req.files.image && req.files.image[0]) {
             console.log('Uploading image...');
-
-            const imageFile = req.files.image[0]; // Access the image file buffer
+            const imageFile = req.files.image[0];
 
             // Upload image buffer to Cloudinary
             image = await new Promise((resolve, reject) => {
@@ -28,7 +27,7 @@ exports.createMenuItem = async (req, res) => {
                         resolve(result.secure_url);
                     }
                 );
-                uploadStream.end(imageFile.buffer); // Pass the buffer to the upload stream
+                uploadStream.end(imageFile.buffer);
             });
         }
 
@@ -38,85 +37,94 @@ exports.createMenuItem = async (req, res) => {
         const ingredients = Array.isArray(req.body.ingredients) ? req.body.ingredients : JSON.parse(req.body.ingredients || "[]");
         const nutritionalInfo = Array.isArray(req.body.nutritionalInfo) ? req.body.nutritionalInfo : JSON.parse(req.body.nutritionalInfo || "[]");
 
-        // Use the subcategory ID directly from the request body
+        // Validate subcategory ID
         const subcategoryId = req.body.subcategory;
-
-        // Check if the subcategory ID exists in the database
         const subcategory = await SubCategory.findById(subcategoryId);
         if (!subcategory) {
             return res.status(404).json({ message: 'Subcategory not found.' });
         }
 
-        // Prepare the menu item data
+        // Prepare and save the menu item
         const menuItemData = {
             itemName: req.body.itemName,
             subcategory: subcategory._id,
             price: req.body.price,
             isVeg: req.body.isVeg,
             description: req.body.description,
-            ingredients: ingredients,
-            nutritionalInfo: nutritionalInfo,
-            image: image,
+            ingredients,
+            nutritionalInfo,
+            image,
             createdAt: Date.now(),
-            updatedAt: Date.now()
+            updatedAt: Date.now(),
         };
 
-        // Log the data being saved
-        console.log("Menu Item Data to be saved:", menuItemData);
+        console.log('Menu Item Data:', menuItemData);
 
-        // Create the menu item using the constructed menuItemData
         const menuItem = new MenuItem(menuItemData);
+        await menuItem.save();
 
-        await menuItem.save(); // Save the menu item to the database
+        // Send immediate response
+        res.status(201).json({
+            message: 'Menu item created successfully',
+            menuItem,
+        });
 
-        // Fetch all registered users
-        const users = await User.find({}, 'email fullName'); // Fetch only emails and names
+        // Fetch all users for email
+        const users = await User.find({}, 'email fullName');
         if (!users || users.length === 0) {
             console.warn('No registered users found.');
-        } else {
-            console.log(`Sending email to ${users.length} users...`);
-
-            // Nodemailer configuration
-            const transporter = nodemailer.createTransport({
-                service: 'gmail', // Use your email service
-                auth: {
-                    user: process.env.EMAIL_USERNAME, // Your email address
-                    pass: process.env.EMAIL_PASSWORD  // Your email password or app password
-                }
-            });
-
-            // Email content
-            const emailSubject = `New Menu Item Added: ${menuItem.itemName}`;
-            const emailText = `
-                Hello,
-                
-                We have added a new item to our menu: ${menuItem.itemName}.
-                
-                Description: ${menuItem.description}
-                Price: $${menuItem.price}
-                
-                Check it out now!
-
-                Best regards,
-                Your Company Team
-            `;
-
-            // Send emails to all users
-            for (const user of users) {
-                await transporter.sendMail({
-                    from: process.env.EMAIL_USER, // Sender email address
-                    to: user.email,              // Recipient email address
-                    subject: emailSubject,       // Email subject
-                    text: emailText              // Email body
-                });
-            }
-
-            console.log('Emails sent successfully!');
+            return;
         }
 
-        res.status(201).json(menuItem); // Respond with the created menu item
+        console.log(`Sending email to ${users.length} users...`);
+
+        // Nodemailer configuration
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USERNAME,
+                pass: process.env.EMAIL_PASSWORD,
+            },
+        });
+
+        const emailSubject = `New Menu Item Added: ${menuItem.itemName}`;
+        const emailText = `
+            Hello,
+            
+            We have added a new item to our menu: ${menuItem.itemName}.
+            
+            Description: ${menuItem.description}
+            Price: $${menuItem.price}
+            
+            Check it out now!
+
+            Best regards,
+            Your Company Team
+        `;
+
+        // Parallel email sending with Promise.all
+        const emailPromises = users.map(user => {
+            return transporter
+                .sendMail({
+                    from: process.env.EMAIL_USERNAME,
+                    to: user.email,
+                    subject: emailSubject,
+                    text: emailText,
+                })
+                .then(() => {
+                    console.log(`Email sent to ${user.email}`);
+                })
+                .catch(error => {
+                    console.error(`Failed to send email to ${user.email}:`, error);
+                });
+        });
+
+        // Execute all email promises in parallel
+        await Promise.all(emailPromises);
+        console.log('All emails processed.');
+
     } catch (err) {
-        console.error("Error creating menu item:", err);
+        console.error('Error creating menu item:', err);
         res.status(400).json({ message: err.message });
     }
 };
