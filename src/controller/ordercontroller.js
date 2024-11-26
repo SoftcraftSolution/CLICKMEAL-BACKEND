@@ -7,6 +7,8 @@ const User = require('../model/user.model');
 const ExcelJS = require('exceljs');  // Assuming MenuItem model is in the 'models' directory
 
 // Add new order
+const nodemailer = require('nodemailer');
+
 exports.createOrder = async (req, res) => {
   try {
     const { userId, items, paymentMethod, deliveryDate } = req.body;
@@ -23,7 +25,7 @@ exports.createOrder = async (req, res) => {
       if (!menuItem) {
         return res.status(404).json({ message: `Menu item with ID ${item.itemId} not found.` });
       }
-      
+
       // Multiply the item price by quantity and add it to totalPrice
       totalPrice += menuItem.price * item.quantity;
     }
@@ -42,9 +44,57 @@ exports.createOrder = async (req, res) => {
     // Save the order to the database
     await newOrder.save();
 
+    // Fetch user details
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    // Send an order confirmation email to the user
+    const transporter = nodemailer.createTransport({
+      service: 'gmail', // Use Gmail's SMTP server
+      auth: {
+        user: process.env.EMAIL_USERNAME, // Your email address
+        pass: process.env.EMAIL_PASSWORD, // Your email password or app password
+      },
+    });
+
+    const emailSubject = 'Order Confirmation';
+    const emailText = `
+      Hello ${user.fullName},
+
+      Thank you for your order! Here are your order details:
+
+      Order ID: ${newOrder._id}
+      Total Price: $${totalPrice}
+      Delivery Date: ${new Date(deliveryDate).toLocaleDateString()}
+
+      Items Ordered:
+      ${items
+        .map((item, index) => {
+          return `${index + 1}. ${item.quantity} x ${item.itemName || 'Unknown Item'}`;
+        })
+        .join('\n')}
+
+      We hope you enjoy your meal!
+
+      Best regards,
+      Your Company Team
+    `;
+
+    // Send the email
+    await transporter.sendMail({
+      from: process.env.EMAIL_USERNAME, // Sender address
+      to: user.email,                   // Recipient email
+      subject: emailSubject,            // Email subject
+      text: emailText,                  // Email content
+    });
+
+    console.log(`Order confirmation email sent to ${user.email}`);
+
     // Return a success response with the created order and total price
     res.status(201).json({
-      message: 'Order created successfully',
+      message: 'Order created successfully and email sent',
       order: newOrder,
       totalPrice: totalPrice, // Return the calculated total price
     });
@@ -53,6 +103,7 @@ exports.createOrder = async (req, res) => {
     res.status(500).json({ message: 'An error occurred while creating the order.' });
   }
 };
+
 exports.orderList = async (req, res) => {
   try {
     // Retrieve all orders and populate user, company, and item details
