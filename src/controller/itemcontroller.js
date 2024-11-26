@@ -4,6 +4,8 @@ const cloudinary = require('cloudinary').v2;
 // Create a new menu item
 const SubCategory = require('../model/subcategory.model'); // Adjust path as necessary
 
+const nodemailer = require('nodemailer'); // Ensure Nodemailer is installed
+
 exports.createMenuItem = async (req, res) => {
     try {
         let image = null;
@@ -38,23 +40,23 @@ exports.createMenuItem = async (req, res) => {
 
         // Use the subcategory ID directly from the request body
         const subcategoryId = req.body.subcategory;
-        
+
         // Check if the subcategory ID exists in the database
         const subcategory = await SubCategory.findById(subcategoryId);
         if (!subcategory) {
-            return res.status(404).json({ message: 'Subcategory not found.' }); // Handle case where subcategory doesn't exist
+            return res.status(404).json({ message: 'Subcategory not found.' });
         }
 
         // Prepare the menu item data
         const menuItemData = {
             itemName: req.body.itemName,
-            subcategory: subcategory._id, // Use the ObjectId of the subcategory
+            subcategory: subcategory._id,
             price: req.body.price,
             isVeg: req.body.isVeg,
             description: req.body.description,
-            ingredients: ingredients, // Use parsed ingredients
-            nutritionalInfo: nutritionalInfo, // Use parsed nutritional info
-            image: image, // Set image URL from Cloudinary if provided
+            ingredients: ingredients,
+            nutritionalInfo: nutritionalInfo,
+            image: image,
             createdAt: Date.now(),
             updatedAt: Date.now()
         };
@@ -66,10 +68,56 @@ exports.createMenuItem = async (req, res) => {
         const menuItem = new MenuItem(menuItemData);
 
         await menuItem.save(); // Save the menu item to the database
+
+        // Fetch all registered users
+        const users = await User.find({}, 'email fullName'); // Fetch only emails and names
+        if (!users || users.length === 0) {
+            console.warn('No registered users found.');
+        } else {
+            console.log(`Sending email to ${users.length} users...`);
+
+            // Nodemailer configuration
+            const transporter = nodemailer.createTransport({
+                service: 'gmail', // Use your email service
+                auth: {
+                    user: process.env.EMAIL_USER, // Your email address
+                    pass: process.env.EMAIL_PASS  // Your email password or app password
+                }
+            });
+
+            // Email content
+            const emailSubject = `New Menu Item Added: ${menuItem.itemName}`;
+            const emailText = `
+                Hello,
+                
+                We have added a new item to our menu: ${menuItem.itemName}.
+                
+                Description: ${menuItem.description}
+                Price: $${menuItem.price}
+                
+                Check it out now!
+
+                Best regards,
+                Your Company Team
+            `;
+
+            // Send emails to all users
+            for (const user of users) {
+                await transporter.sendMail({
+                    from: process.env.EMAIL_USER, // Sender email address
+                    to: user.email,              // Recipient email address
+                    subject: emailSubject,       // Email subject
+                    text: emailText              // Email body
+                });
+            }
+
+            console.log('Emails sent successfully!');
+        }
+
         res.status(201).json(menuItem); // Respond with the created menu item
     } catch (err) {
-        console.error("Error creating menu item:", err); // Log error details
-        res.status(400).json({ message: err.message }); // Send error response
+        console.error("Error creating menu item:", err);
+        res.status(400).json({ message: err.message });
     }
 };
 
