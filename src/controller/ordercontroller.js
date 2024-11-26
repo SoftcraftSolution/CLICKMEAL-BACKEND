@@ -3,7 +3,8 @@ const MenuItem = require('../model/item.model');
 const Company = require('../model/company.model'); // Replace with your actual model path
 const Employee = require('../model/user.model'); // Replace with your actual model path
 const Feedback = require('../model/feedback.model');
-const User = require('../model/user.model'); // Assuming MenuItem model is in the 'models' directory
+const User = require('../model/user.model');
+const ExcelJS = require('exceljs');  // Assuming MenuItem model is in the 'models' directory
 
 // Add new order
 exports.createOrder = async (req, res) => {
@@ -307,3 +308,88 @@ exports.orderList = async (req, res) => {
       res.status(500).json({ message: 'Internal server error' });
     }
   };
+ 
+
+  exports.getOrdersByCompanyName = async (req, res) => {
+      try {
+          const { companyName } = req.query;
+  
+          if (!companyName) {
+              return res.status(400).json({ message: 'Company name is required' });
+          }
+  
+          // Find the company by name
+          const company = await Company.findOne({ name: companyName });
+  
+          if (!company) {
+              return res.status(404).json({ message: `No company found with name ${companyName}` });
+          }
+  
+          // Fetch users associated with the company
+          const users = await User.find({ companyId: company._id });
+  
+          if (!users.length) {
+              return res.status(404).json({ message: `No users found for company ${companyName}` });
+          }
+  
+          // Extract user IDs
+          const userIds = users.map(user => user._id);
+  
+          // Fetch orders for these users
+          const orders = await Order.find({ userId: { $in: userIds } }).populate('items.itemId');
+  
+          if (!orders.length) {
+              return res.status(404).json({ message: `No orders found for company ${companyName}` });
+          }
+  
+          // Create an Excel workbook and worksheet
+          const workbook = new ExcelJS.Workbook();
+          const worksheet = workbook.addWorksheet('Orders Summary');
+  
+          // Add headers to the Excel sheet
+          worksheet.columns = [
+              { header: 'Order ID', key: 'orderId', width: 25 },
+              { header: 'User ID', key: 'userId', width: 25 },
+              { header: 'Delivery Date', key: 'deliveryDate', width: 20 },
+              { header: 'Status', key: 'status', width: 15 },
+              { header: 'Item Name', key: 'itemName', width: 25 },
+              { header: 'Quantity', key: 'quantity', width: 10 },
+              { header: 'Extras', key: 'extras', width: 30 },
+              { header: 'Total Price', key: 'totalPrice', width: 15 },
+          ];
+  
+          // Populate rows with order data
+          for (const order of orders) {
+              for (const item of order.items) {
+                  worksheet.addRow({
+                      orderId: order._id.toString(),
+                      userId: order.userId.toString(),
+                      deliveryDate: order.deliveryDate.toISOString().split('T')[0],
+                      status: order.status,
+                      itemName: item.itemId.itemName || 'Unknown', // Assuming MenuItem has a `name` field
+                      quantity: item.quantity,
+                      extras: item.extras.join(', '), // Join extras array into a comma-separated string
+                      totalPrice: order.totalPrice,
+                  });
+              }
+          }
+  
+          // Set response headers for Excel file
+          res.setHeader(
+              'Content-Type',
+              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          );
+          res.setHeader(
+              'Content-Disposition',
+              `attachment; filename=orders_summary_${company.name}.xlsx`
+          );
+  
+          // Write the workbook to the response
+          await workbook.xlsx.write(res);
+          res.end();
+      } catch (error) {
+          console.error('Error exporting orders:', error);
+          res.status(500).json({ message: 'Error exporting orders', error });
+      }
+  };
+  
