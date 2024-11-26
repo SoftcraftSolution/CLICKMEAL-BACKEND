@@ -1,10 +1,8 @@
 const CustomizeMeal = require('../model/customizemeal.model');
-const cloudinary = require('cloudinary').v2; 
-const User = require('../model/user.model'); // User schema
+const cloudinary = require('cloudinary').v2;
+const SubCategory = require('../model/subcategory.model');
+const User = require('../model/user.model');
 const nodemailer = require('nodemailer');
-
-// Create a new menu item
-const SubCategory = require('../model/subcategory.model'); // Adjust path as necessary
 
 exports.createCustomizeMeal = async (req, res) => {
     try {
@@ -42,23 +40,23 @@ exports.createCustomizeMeal = async (req, res) => {
         const subcategoryId = req.body.subcategory;
         const companyId = req.body.companyId;
 
-        // Check if the subcategory ID exists in the database
+        // Validate the subcategory
         const subcategory = await SubCategory.findById(subcategoryId);
         if (!subcategory) {
-            return res.status(404).json({ message: 'Subcategory not found.' }); // Handle case where subcategory doesn't exist
+            return res.status(404).json({ message: 'Subcategory not found.' });
         }
 
-        // Prepare the menu item data
+        // Prepare the Customize Meal data
         const customizemealData = {
             itemName: req.body.itemName,
-            subcategory: subcategory._id, // Use the ObjectId of the subcategory
+            subcategory: subcategory._id,
             price: req.body.price,
             isVeg: req.body.isVeg,
             description: req.body.description,
-            ingredients: ingredients, // Use parsed ingredients
+            image: image,
+            companyId: companyId,
+            ingredients: ingredients,
             nutritionalInfo: nutritionalInfo,
-            companyId: companyId, // Use parsed nutritional info
-            image: image, // Set image URL from Cloudinary if provided
             createdAt: Date.now(),
             updatedAt: Date.now(),
         };
@@ -66,17 +64,19 @@ exports.createCustomizeMeal = async (req, res) => {
         // Log the data being saved
         console.log("Customize meal data to be saved:", customizemealData);
 
-        // Create the menu item using the constructed menuItemData
-        const menuItem = new CustomizeMeal(customizemealData);
+        // Save the new Customize Meal entry
+        const newMeal = new CustomizeMeal(customizemealData);
+        await newMeal.save();
 
-        await menuItem.save(); // Save the menu item to the database
-
-        // Fetch all users associated with the companyId
+        // Fetch users associated with the companyId
         const users = await User.find({ companyId });
 
         if (!users || users.length === 0) {
-            console.warn('No users found for this company.');
-            return res.status(201).json({ message: 'Customize meal created successfully, but no users found to notify.' });
+            console.warn(`No users found for the company with ID: ${companyId}`);
+            return res.status(201).json({
+                message: 'Customize meal created successfully, but no users found to notify.',
+                newMeal,
+            });
         }
 
         console.log(`Notifying ${users.length} users about the new customize meal.`);
@@ -91,23 +91,23 @@ exports.createCustomizeMeal = async (req, res) => {
         });
 
         // Email subject and body
-        const emailSubject = `New Customize Meal Added: ${menuItem.itemName}`;
+        const emailSubject = `New Customize Meal Added: ${newMeal.itemName}`;
         const emailText = `
             Hello,
-            
-            We have added a new customized meal to our menu!
-            
-            Item Name: ${menuItem.itemName}
-            Description: ${menuItem.description}
-            Price: $${menuItem.price}
-            
+
+            Your company has added a new customized meal to the menu!
+
+            Item Name: ${newMeal.itemName}
+            Description: ${newMeal.description}
+            Price: $${newMeal.price}
+
             Check it out now!
 
             Best regards,
             Your Company Team
         `;
 
-        // Send emails to all users
+        // Send emails to all users of the company
         for (const user of users) {
             await transporter.sendMail({
                 from: process.env.EMAIL_USERNAME, // Sender email address
@@ -119,12 +119,13 @@ exports.createCustomizeMeal = async (req, res) => {
 
         console.log('Emails sent successfully!');
 
-        res.status(201).json({ message: 'Customize meal created successfully and users notified.', menuItem });
+        res.status(201).json({ message: 'Customize meal created successfully and users notified.', newMeal });
     } catch (err) {
-        console.error("Error creating customize meal:", err); // Log error details
-        res.status(500).json({ message: 'Error creating customize meal.', error: err.message }); // Send error response
+        console.error("Error creating customize meal:", err);
+        res.status(500).json({ message: 'Error creating customize meal.', error: err.message });
     }
 };
+
 exports.getAllCustomizeMeals = async (req, res) => {
     try {
         const meals = await CustomizeMeal.find().populate('subcategory', 'name').populate('companyId', 'name'); // Adjust fields as necessary

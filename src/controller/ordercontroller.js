@@ -380,88 +380,105 @@ exports.orderList = async (req, res) => {
 
  // Ensure this is installed: npm install exceljs
 
-  exports.getOrdersByCompanyId = async (req, res) => {
-      try {
-          const { companyId } = req.query;
-  
-          if (!companyId) {
-              return res.status(400).json({ message: 'Company ID is required' });
-          }
-  
-          // Find the company by ID
-          const company = await Company.findById(companyId);
-          if (!company) {
-              return res.status(404).json({ message: `No company found with ID ${companyId}` });
-          }
-  
-          // Fetch users associated with the company
-          const users = await User.find({ companyId });
-          if (!users.length) {
-              return res.status(404).json({ message: `No users found for company with ID ${companyId}` });
-          }
-  
-          // Extract user IDs
-          const userIds = users.map(user => user._id);
-  
-          // Fetch orders for these users
-          const orders = await Order.find({ userId: { $in: userIds } }).populate('items.itemId');
-          if (!orders.length) {
-              return res.status(404).json({ message: `No orders found for company with ID ${companyId}` });
-          }
-  
-          // Create an Excel workbook and worksheet
-          const workbook = new ExcelJS.Workbook();
-          const worksheet = workbook.addWorksheet('Orders Summary');
-  
-          // Add headers to the Excel sheet
-          worksheet.columns = [
-              { header: 'Order ID', key: 'orderId', width: 25 },
-              { header: 'User ID', key: 'userId', width: 25 },
-              { header: 'Delivery Date', key: 'deliveryDate', width: 20 },
-              { header: 'Status', key: 'status', width: 15 },
-              { header: 'Item Name', key: 'itemName', width: 25 },
-              { header: 'Quantity', key: 'quantity', width: 10 },
-              { header: 'Extras', key: 'extras', width: 30 },
-              { header: 'Total Price', key: 'totalPrice', width: 15 },
-          ];
-  
-          // Populate rows with order data
-          for (const order of orders) {
-              for (const item of order.items) {
-                  worksheet.addRow({
-                      orderId: order._id.toString(),
-                      userId: order.userId.toString(),
-                      deliveryDate: order.deliveryDate.toISOString().split('T')[0],
-                      status: order.status,
-                      itemName: item.itemId?.itemName || 'Unknown', // Use optional chaining to avoid errors
-                      quantity: item.quantity,
-                      extras: item.extras.join(', '), // Join extras array into a comma-separated string
-                      totalPrice: order.totalPrice,
-                  });
-              }
-          }
-  
-          // Add styling (optional)
-          worksheet.getRow(1).font = { bold: true }; // Bold headers
-  
-          // Set response headers for Excel file
-          res.setHeader(
-              'Content-Type',
-              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-          );
-          res.setHeader(
-              'Content-Disposition',
-              `attachment; filename=orders_summary_${company.name.replace(/\s+/g, '_')}.xlsx`
-          );
-  
-          // Write the workbook to the response
-          await workbook.xlsx.write(res);
-          res.end();
-      } catch (error) {
-          console.error('Error exporting orders:', error);
-          res.status(500).json({ message: 'Error exporting orders', error: error.message });
+ exports.getOrdersByCompanyIdAndDate = async (req, res) => {
+  try {
+      const { companyId, deliveryDate } = req.query;
+
+      if (!companyId) {
+          return res.status(400).json({ message: 'Company ID is required' });
       }
-  };
+
+      if (!deliveryDate) {
+          return res.status(400).json({ message: 'Delivery date is required' });
+      }
+
+      // Parse the delivery date
+      const date = new Date(deliveryDate);
+      if (isNaN(date.getTime())) {
+          return res.status(400).json({ message: 'Invalid delivery date format' });
+      }
+
+      // Define start and end of the day for filtering
+      const startOfDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0));
+      const endOfDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59));
+
+      // Find the company by ID
+      const company = await Company.findById(companyId);
+      if (!company) {
+          return res.status(404).json({ message: `No company found with ID ${companyId}` });
+      }
+
+      // Fetch users associated with the company
+      const users = await User.find({ companyId });
+      if (!users.length) {
+          return res.status(404).json({ message: `No users found for company with ID ${companyId}` });
+      }
+
+      // Extract user IDs
+      const userIds = users.map(user => user._id);
+
+      // Fetch orders for these users and the specified delivery date
+      const orders = await Order.find({
+          userId: { $in: userIds },
+          deliveryDate: { $gte: startOfDay, $lt: endOfDay },
+      }).populate('items.itemId');
+      if (!orders.length) {
+          return res.status(404).json({ message: `No orders found for company with ID ${companyId} on ${deliveryDate}` });
+      }
+
+      // Create an Excel workbook and worksheet
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Orders Summary');
+
+      // Add headers to the Excel sheet
+      worksheet.columns = [
+          { header: 'Order ID', key: 'orderId', width: 25 },
+          { header: 'User ID', key: 'userId', width: 25 },
+          { header: 'Delivery Date', key: 'deliveryDate', width: 20 },
+          { header: 'Status', key: 'status', width: 15 },
+          { header: 'Item Name', key: 'itemName', width: 25 },
+          { header: 'Quantity', key: 'quantity', width: 10 },
+          { header: 'Extras', key: 'extras', width: 30 },
+          { header: 'Total Price', key: 'totalPrice', width: 15 },
+      ];
+
+      // Populate rows with order data
+      for (const order of orders) {
+          for (const item of order.items) {
+              worksheet.addRow({
+                  orderId: order._id.toString(),
+                  userId: order.userId.toString(),
+                  deliveryDate: order.deliveryDate.toISOString().split('T')[0],
+                  status: order.status,
+                  itemName: item.itemId?.itemName || 'Unknown', // Use optional chaining to avoid errors
+                  quantity: item.quantity,
+                  extras: item.extras.join(', '), // Join extras array into a comma-separated string
+                  totalPrice: order.totalPrice,
+              });
+          }
+      }
+
+      // Add styling (optional)
+      worksheet.getRow(1).font = { bold: true }; // Bold headers
+
+      // Set response headers for Excel file
+      res.setHeader(
+          'Content-Type',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader(
+          'Content-Disposition',
+          `attachment; filename=orders_summary_${company.name.replace(/\s+/g, '_')}_${deliveryDate}.xlsx`
+      );
+
+      // Write the workbook to the response
+      await workbook.xlsx.write(res);
+      res.end();
+  } catch (error) {
+      console.error('Error exporting orders:', error);
+      res.status(500).json({ message: 'Error exporting orders', error: error.message });
+  }
+};
  
 
 
