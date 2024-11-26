@@ -1,5 +1,6 @@
 const User = require('../model/user.model');
-const Company=require('../model/company.model') // Adjust the path as necessary
+const Company=require('../model/company.model') 
+const ExcelJS = require('exceljs');// Adjust the path as necessary
 
 // Registration API
 exports.registerUser = async (req, res) => {
@@ -109,5 +110,50 @@ exports.deleteUser = async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ message: 'Error deleting user', error });
+    }
+};
+exports.exportUsersToExcel = async (req, res) => {
+    try {
+        // Fetch all users
+        const users = await User.find();
+
+        // Create a new workbook and worksheet
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Users');
+
+        // Add header row
+        worksheet.columns = [
+            { header: 'Full Name', key: 'fullName', width: 25 },
+            { header: 'Email', key: 'email', width: 30 },
+            { header: 'Phone Number', key: 'phoneNumber', width: 20 },
+            { header: 'Company Name', key: 'companyName', width: 25 },
+        ];
+
+        // Populate data rows
+        for (const user of users) {
+            const company = await Company.findById(user.companyId); // Fetch company details
+            worksheet.addRow({
+                fullName: user.fullName,
+                email: user.email,
+                phoneNumber: user.phoneNumber,
+                companyName: company ? company.name : 'N/A',
+            });
+        }
+
+        // Set the response headers for Excel file
+        res.setHeader(
+            'Content-Type',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        );
+        res.setHeader(
+            'Content-Disposition',
+            'attachment; filename=users.xlsx'
+        );
+
+        // Write the workbook to response
+        await workbook.xlsx.write(res);
+        res.end();
+    } catch (error) {
+        res.status(500).json({ message: 'Error exporting users', error });
     }
 };
