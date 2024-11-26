@@ -49,6 +49,7 @@ router.get('/order-insight',orderController.orderInsight)
 router.get('/my-order',orderController.myOrder)
 router.get('/get-order-by-company',orderController.getAllCompaniesWithOrderCount)
 router.get('/export-orders', orderController.getOrdersByCompanyId);
+router.get('/deliverydate', orderController.getOrderCountByDeliveryDate);
 
 
 router.post('/feedback',feedbackController.Feedback)

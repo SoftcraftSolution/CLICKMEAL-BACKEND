@@ -1,7 +1,7 @@
 const Order = require('../model/order.model'); // Assuming the Order model is in the 'models' directory
 const MenuItem = require('../model/item.model');
 const Company = require('../model/company.model'); // Replace with your actual model path
-const Employee = require('../model/user.model'); // Replace with your actual model path
+
 const Feedback = require('../model/feedback.model');
 const User = require('../model/user.model');
 const ExcelJS = require('exceljs');  // Assuming MenuItem model is in the 'models' directory
@@ -462,5 +462,89 @@ exports.orderList = async (req, res) => {
           res.status(500).json({ message: 'Error exporting orders', error: error.message });
       }
   };
+ 
+
+
+  exports.getOrderCountByDeliveryDate = async (req, res) => {
+    try {
+        const { deliveryDate } = req.query;
+
+        // Validate the query parameter
+        if (!deliveryDate) {
+            return res.status(400).json({ message: 'Delivery date is required.' });
+        }
+
+        // Parse the deliveryDate
+        const date = new Date(deliveryDate);
+        if (isNaN(date.getTime())) {
+            return res.status(400).json({ message: 'Invalid delivery date format.' });
+        }
+
+        // Set start and end of the day in UTC
+        const startOfDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0));
+        const endOfDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59));
+
+        // Fetch orders within the specified deliveryDate range and populate `userId`
+        const orders = await Order.find({
+            deliveryDate: {
+                $gte: startOfDay,
+                $lt: endOfDay,
+            },
+        }).populate('userId', 'companyId'); // Populate userId to access companyId
+
+        if (!orders.length) {
+            return res.status(404).json({ message: 'No orders found for the specified delivery date.' });
+        }
+
+        // Collect all unique companyIds from orders
+        const companyIds = new Set();
+        orders.forEach(order => {
+            if (order.userId?.companyId) {
+                companyIds.add(order.userId.companyId.toString());
+            }
+        });
+
+        // Fetch company details for the collected companyIds
+        const companies = await Company.find({ _id: { $in: Array.from(companyIds) } });
+
+        // Group and count orders by `companyId`
+        const orderCounts = orders.reduce((acc, order) => {
+            const companyId = order.userId?.companyId?.toString() || 'Unknown';
+
+            if (!acc[companyId]) {
+                const company = companies.find(c => c._id.toString() === companyId);
+                acc[companyId] = {
+                    companyId: company ? company._id : null,
+                    companyName: company ? company.name : 'Unknown',
+                    orderCount: 0,
+                };
+            }
+
+            acc[companyId].orderCount += 1;
+            return acc;
+        }, {});
+
+        // Convert the result to an array
+        const response = Object.values(orderCounts);
+
+        // Return the response
+        res.status(200).json({
+            message: 'Order counts retrieved successfully.',
+            deliveryDate: deliveryDate.split('T')[0], // Return the date without time
+            counts: response,
+        });
+    } catch (error) {
+        console.error('Error fetching order counts:', error.message);
+        res.status(500).json({ message: 'Error fetching order counts.', error: error.message });
+    }
+};
+
+
   
-  
+
+
+
+
+
+
+
