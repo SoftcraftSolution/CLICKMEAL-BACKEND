@@ -576,13 +576,70 @@ exports.getOrderCountByDeliveryDate = async (req, res) => {
 };
 
 
+exports.updateOrderStatusByCompanyAndDate = async (req, res) => {
+  try {
+    const { companyId, deliveryDate, newStatus } = req.body;
 
+    // Validate required fields
+    if (!companyId) {
+      return res.status(400).json({ message: 'Company ID is required.' });
+    }
+    if (!deliveryDate) {
+      return res.status(400).json({ message: 'Delivery date is required.' });
+    }
+    if (!newStatus) {
+      return res.status(400).json({ message: 'New status is required.' });
+    }
 
-  
+    // Validate the newStatus value
+    const validStatuses = ['ordered', 'preparing', 'delivered'];
+    if (!validStatuses.includes(newStatus)) {
+      return res.status(400).json({ message: `Invalid status value. Valid statuses are: ${validStatuses.join(', ')}.` });
+    }
 
+    // Parse and validate deliveryDate
+    const date = new Date(deliveryDate);
+    if (isNaN(date.getTime())) {
+      return res.status(400).json({ message: 'Invalid delivery date format. Use YYYY-MM-DD.' });
+    }
 
+    // Set start and end of the day in UTC
+    const startOfDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0));
+    const endOfDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59));
 
+    // Fetch users associated with the companyId
+    const users = await User.find({ companyId }, '_id');
+    if (!users.length) {
+      return res.status(404).json({ message: 'No users found for the specified company.' });
+    }
 
+    // Extract user IDs
+    const userIds = users.map(user => user._id);
 
+    // Update orders for the given companyId and deliveryDate
+    const updatedOrders = await Order.updateMany(
+      {
+        userId: { $in: userIds }, // Filter by userId derived from companyId
+        deliveryDate: { $gte: startOfDay, $lt: endOfDay }, // Filter by deliveryDate
+      },
+      { $set: { status: newStatus } } // Set the new status
+    );
 
+    // If no orders were updated, return a 404 response
+    if (updatedOrders.matchedCount === 0) {
+      return res.status(404).json({ message: 'No orders found for the specified company and delivery date.' });
+    }
 
+    // Return success response
+    res.status(200).json({
+      message: 'Order statuses updated successfully.',
+      updatedCount: updatedOrders.modifiedCount,
+    });
+  } catch (error) {
+    console.error('Error updating order statuses:', error.message || error);
+    res.status(500).json({
+      message: 'An error occurred while updating order statuses.',
+      error: error.message,
+    });
+  }
+};
