@@ -4,58 +4,19 @@ const Company = require('../model/company.model'); // Replace with your actual m
 
 const Feedback = require('../model/feedback.model');
 const User = require('../model/user.model');
-const ExcelJS = require('exceljs');  // Assuming MenuItem model is in the 'models' directory
+const ExcelJS = require('exceljs');
+const ExtraMeal=require('../model/extrameal.model')  // Assuming MenuItem model is in the 'models' directory
 
 // Add new order
 const nodemailer = require('nodemailer');
-
 exports.createOrder = async (req, res) => {
   try {
     const { userId, items, paymentMethod, deliveryDate } = req.body;
 
-    // Validate that all required fields are provided
+    // Validate required fields
     if (!userId || !items || !paymentMethod || !deliveryDate) {
-      return res.status(400).json({ message: 'All fields are required' });
+      return res.status(400).json({ message: 'All fields are required.' });
     }
-
-    // Calculate the total price and enrich items with item names
-    let totalPrice = 0;
-    const enrichedItems = [];
-    for (const item of items) {
-      const menuItem = await MenuItem.findById(item.itemId); // Fetch item details by itemId
-      if (!menuItem) {
-        return res.status(404).json({ message: `Menu item with ID ${item.itemId} not found.` });
-      }
-
-      // Add item name and other details to the enrichedItems array
-      enrichedItems.push({
-        itemId: menuItem._id,
-        itemName: menuItem.itemName,
-        quantity: item.quantity,
-        extras: item.extras || [],
-      });
-
-      // Multiply the item price by quantity and add it to totalPrice
-      totalPrice += menuItem.price * item.quantity;
-    }
-
-    // Create a new order object based on the provided data
-    const newOrder = new Order({
-      userId,
-      items: enrichedItems.map(item => ({
-        itemId: item.itemId,
-        quantity: item.quantity,
-        extras: item.extras,
-      })),
-      totalPrice,
-      paymentMethod,
-      paymentStatus: 'completed', // Default payment status
-      deliveryDate,
-      status: 'ordered', // Default status
-    });
-
-    // Save the order to the database
-    await newOrder.save();
 
     // Fetch user details
     const user = await User.findById(userId);
@@ -63,60 +24,73 @@ exports.createOrder = async (req, res) => {
       return res.status(404).json({ message: 'User not found.' });
     }
 
-    // Send an order confirmation email to the user
-    const transporter = nodemailer.createTransport({
-      service: 'gmail', // Use Gmail's SMTP server
-      auth: {
-        user: process.env.EMAIL_USERNAME, // Your email address
-        pass: process.env.EMAIL_PASSWORD, // Your email password or app password
-      },
-    });
+    // Calculate total price and enrich items
+    let totalPrice = 0;
+    const enrichedItems = await Promise.all(
+      items.map(async (item) => {
+        const menuItem = await MenuItem.findById(item.itemId);
+        if (!menuItem) {
+          throw new Error(`Menu item with ID ${item.itemId} not found.`);
+        }
 
-    const emailSubject = 'Order Confirmation';
-    const emailText = `
-      Hello ${user.fullName},
+        // Calculate price for item
+        let itemTotal = menuItem.price * item.quantity;
 
-      Thank you for your order! Here are your order details:
+        // Enrich extras
+        const enrichedExtras = await Promise.all(
+          (item.extras || []).map(async (extra) => {
+            const extraMeal = await ExtraMeal.findById(extra.extraMealId);
+            if (!extraMeal) {
+              throw new Error(`Extra meal with ID ${extra.extraMealId} not found.`);
+            }
 
-      Order ID: ${newOrder._id}
-      Total Price: $${totalPrice}
-      Delivery Date: ${new Date(deliveryDate).toLocaleDateString()}
+            // Calculate price for extras
+            const extraTotal = extraMeal.price * (extra.quantity || 1);
+            itemTotal += extraTotal;
 
-      Items Ordered:
-      ${enrichedItems
-        .map((item, index) => {
-          return `${index + 1}. ${item.quantity} x ${item.itemName}`;
-        })
-        .join('\n')}
+            return {
+              extraMealId: extraMeal._id,
+              quantity: extra.quantity || 1,
+            };
+          })
+        );
 
-      We hope you enjoy your meal!
+        // Update total price
+        totalPrice += itemTotal;
 
-      Best regards,
-      Your Company Team
-    `;
+        return {
+          itemId: menuItem._id,
+          quantity: item.quantity,
+          extras: enrichedExtras,
+        };
+      })
+    );
 
-    // Send the email
-    await transporter.sendMail({
-      from: process.env.EMAIL_USERNAME, // Sender address
-      to: user.email,                   // Recipient email
-      subject: emailSubject,            // Email subject
-      text: emailText,                  // Email content
-    });
-
-    console.log(`Order confirmation email sent to ${user.email}`);
-
-    // Return a success response with the created order and enriched items
-    res.status(201).json({
-      message: 'Order created successfully and email sent',
-      order: {
-        ...newOrder.toObject(),
-        items: enrichedItems, // Include enriched items with item names
-      },
+    // Create a new order
+    const newOrder = new Order({
+      userId,
+      items: enrichedItems,
       totalPrice,
+      paymentMethod,
+      paymentStatus: 'pending', // Default payment status
+      deliveryDate,
+      status: 'ordered', // Default status
     });
-  } catch (err) {
-    console.error('Error creating order:', err);
-    res.status(500).json({ message: 'An error occurred while creating the order.' });
+
+    // Save the order
+    const savedOrder = await newOrder.save();
+
+    // Return success response
+    res.status(201).json({
+      message: 'Order created successfully.',
+      data: savedOrder,
+    });
+  } catch (error) {
+    console.error('Error creating order:', error.message || error);
+    res.status(500).json({
+      message: 'An error occurred while creating the order.',
+      error: error.message || error,
+    });
   }
 };
 

@@ -14,6 +14,7 @@ const rewardController=require('../controller/rewardcontroller')
 const admincontroller=require('../controller/admincontroller')
 const qrcontroller=require('../controller/qrcontroller')
 const customizemealController=require('../controller/customizemealcontroller')
+const extramealController=require('../controller/extramealcontroller')
 
 router.post('/register',usercontroller.registerUser);
 router.post('/login',usercontroller.loginUser)
@@ -74,6 +75,9 @@ router.post('/add-customize-meal',upload,customizemealController.createCustomize
 router.get('/get-customize-meal',customizemealController.getAllCustomizeMeals)
 router.delete('/delete-customize-meal',customizemealController.deleteCustomizeMeal)
 router.get('/get-customizemeal-by-companyId',customizemealController.getCustomizeMealsByCompany)
+
+router.post('/add-extrameal',upload,extramealController.addExtraMeal)
+router.get('/get-extrameal',extramealController.getExtraMeals)
 
 
 
