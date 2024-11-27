@@ -39,6 +39,7 @@ router.delete('/delete-item',itemController.deleteMenuItemById)
 
 router.post('/add-cart',cartController.addMultipleToCart)
 router.get('/my-cart',cartController.getCartByUserId)
+router.delete('/remove-cart',cartController.removeFromCart)
 
 
 router.post('/add-banner', upload,bannerController.addBanner)
