@@ -596,7 +596,7 @@ exports.getOrderCountByDeliveryDate = async (req, res) => {
 
 exports.updateOrderStatusByCompanyAndDate = async (req, res) => {
   try {
-    const { companyId, deliveryDate, newStatus } = req.query;
+    const { companyId, deliveryDate, newStatus } = req.body;
 
     // Validate required fields
     if (!companyId) {

@@ -52,7 +52,7 @@ router.get('/my-order',orderController.myOrder)
 router.get('/get-order-by-company',orderController.getAllCompaniesWithOrderCount)
 router.get('/export-orders', orderController.exportOrders  );
 router.get('/deliverydate', orderController.getOrderCountByDeliveryDate);
-router.get('/order-status', orderController.updateOrderStatusByCompanyAndDate);
+router.post('/order-status', orderController.updateOrderStatusByCompanyAndDate);
 
 
 router.post('/feedback',feedbackController.Feedback)
