@@ -36,7 +36,7 @@ exports.createOrder = async (req, res) => {
         // Calculate price for item
         let itemTotal = menuItem.price * item.quantity;
 
-        // Enrich extras
+        // Enrich extras (if provided)
         const enrichedExtras = await Promise.all(
           (item.extras || []).map(async (extra) => {
             const extraMeal = await ExtraMeal.findById(extra.extraMealId);
@@ -63,7 +63,7 @@ exports.createOrder = async (req, res) => {
           itemId: menuItem._id,
           itemName: menuItem.itemName,
           quantity: item.quantity,
-          extras: enrichedExtras, // Save enrichedExtras with ExtraMeal IDs
+          extras: enrichedExtras, // Save enrichedExtras with ExtraMeal IDs (if any)
         };
       })
     );
@@ -72,7 +72,6 @@ exports.createOrder = async (req, res) => {
     const newOrder = new Order({
       userId,
       items: enrichedItems,
-      extras,
       totalPrice,
       paymentMethod,
       paymentStatus: 'pending', // Default payment status
@@ -96,6 +95,7 @@ exports.createOrder = async (req, res) => {
     });
   }
 };
+
 
 
 
