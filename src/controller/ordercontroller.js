@@ -11,7 +11,7 @@ const ExtraMeal=require('../model/extrameal.model')  // Assuming MenuItem model 
 const nodemailer = require('nodemailer');
 exports.createOrder = async (req, res) => {
   try {
-    const { userId, items, paymentMethod, deliveryDate } = req.body;
+    const { userId, items, extras, paymentMethod, deliveryDate } = req.body;
 
     // Validate required fields
     if (!userId || !items || !paymentMethod || !deliveryDate) {
@@ -34,44 +34,45 @@ exports.createOrder = async (req, res) => {
         }
 
         // Calculate price for item
-        let itemTotal = menuItem.price * item.quantity;
-
-        // Enrich extras (if provided)
-        const enrichedExtras = await Promise.all(
-          (item.extras || []).map(async (extra) => {
-            const extraMeal = await ExtraMeal.findById(extra.extraMealId);
-            if (!extraMeal) {
-              throw new Error(`Extra meal with ID ${extra.extraMealId} not found.`);
-            }
-
-            // Calculate price for extras
-            const extraTotal = extraMeal.price * (extra.quantity || 1);
-            itemTotal += extraTotal;
-
-            return {
-              extraMealId: extraMeal._id, // Save ExtraMeal ID
-              name: extraMeal.name,
-              quantity: extra.quantity || 1,
-            };
-          })
-        );
-
-        // Update total price
+        const itemTotal = menuItem.price * item.quantity;
         totalPrice += itemTotal;
 
         return {
           itemId: menuItem._id,
           itemName: menuItem.itemName,
           quantity: item.quantity,
-          extras: enrichedExtras, // Save enrichedExtras with ExtraMeal IDs (if any)
         };
       })
     );
+
+    // Enrich and calculate extras if provided
+    let enrichedExtras = [];
+    if (extras && extras.length > 0) {
+      enrichedExtras = await Promise.all(
+        extras.map(async (extra) => {
+          const extraMeal = await ExtraMeal.findById(extra.extraMealId);
+          if (!extraMeal) {
+            throw new Error(`Extra meal with ID ${extra.extraMealId} not found.`);
+          }
+
+          // Calculate price for extras
+          const extraTotal = extraMeal.price * (extra.quantity || 1);
+          totalPrice += extraTotal;
+
+          return {
+            extraMealId: extraMeal._id,
+            name: extraMeal.name,
+            quantity: extra.quantity || 1,
+          };
+        })
+      );
+    }
 
     // Create a new order
     const newOrder = new Order({
       userId,
       items: enrichedItems,
+      extras: enrichedExtras, // Save enrichedExtras in the order
       totalPrice,
       paymentMethod,
       paymentStatus: 'pending', // Default payment status
@@ -82,10 +83,26 @@ exports.createOrder = async (req, res) => {
     // Save the order
     const savedOrder = await newOrder.save();
 
+    // Prepare response data
+    const responseData = {
+      userId: savedOrder.userId,
+      items: savedOrder.items,
+      extras: enrichedExtras, // Include enrichedExtras in the response
+      totalPrice: savedOrder.totalPrice,
+      paymentMethod: savedOrder.paymentMethod,
+      paymentStatus: savedOrder.paymentStatus,
+      deliveryDate: savedOrder.deliveryDate,
+      status: savedOrder.status,
+      _id: savedOrder._id,
+      orderId: savedOrder.orderId,
+      createdAt: savedOrder.createdAt,
+      updatedAt: savedOrder.updatedAt,
+    };
+
     // Return success response
     res.status(201).json({
       message: 'Order created successfully.',
-      data: savedOrder,
+      data: responseData,
     });
   } catch (error) {
     console.error('Error creating order:', error.message || error);
@@ -95,6 +112,7 @@ exports.createOrder = async (req, res) => {
     });
   }
 };
+
 
 
 
