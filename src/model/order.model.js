@@ -4,7 +4,7 @@ const orderSchema = new mongoose.Schema(
   {
     orderId: {
       type: mongoose.Schema.Types.ObjectId,
-      default: () => new mongoose.Types.ObjectId(), // Generate a new ObjectId by default
+      default: () => new mongoose.Types.ObjectId(),
       required: true,
     },
     userId: {
@@ -27,18 +27,21 @@ const orderSchema = new mongoose.Schema(
           type: Number,
           default: 1,
         },
-        extras: [
-          {
-            extraMealId: {
-              type: mongoose.Schema.Types.ObjectId,
-              ref: 'ExtraMeal', // Referencing the ExtraMeal model
-            },
-            quantity: {
-              type: Number,
-              default: 1, // Default quantity for the extra meal
-            },
-          },
-        ],
+      },
+    ],
+    extras: [
+      {
+        extraMealId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'ExtraMeal',
+        },
+        name: {
+          type: String,
+        },
+        quantity: {
+          type: Number,
+          default: 1,
+        },
       },
     ],
     totalPrice: {
@@ -66,7 +69,7 @@ const orderSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, 
+    timestamps: true,
   }
 );
 

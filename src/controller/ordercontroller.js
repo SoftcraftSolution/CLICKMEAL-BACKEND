@@ -49,7 +49,8 @@ exports.createOrder = async (req, res) => {
             itemTotal += extraTotal;
 
             return {
-              extraMealId: extraMeal._id,
+              extraMealId: extraMeal._id, // Save ExtraMeal ID
+              name: extraMeal.name,
               quantity: extra.quantity || 1,
             };
           })
@@ -60,8 +61,9 @@ exports.createOrder = async (req, res) => {
 
         return {
           itemId: menuItem._id,
+          itemName: menuItem.itemName,
           quantity: item.quantity,
-          extras: enrichedExtras,
+          extras: enrichedExtras, // Save enrichedExtras with ExtraMeal IDs
         };
       })
     );
@@ -70,6 +72,7 @@ exports.createOrder = async (req, res) => {
     const newOrder = new Order({
       userId,
       items: enrichedItems,
+      extras,
       totalPrice,
       paymentMethod,
       paymentStatus: 'pending', // Default payment status
@@ -93,6 +96,7 @@ exports.createOrder = async (req, res) => {
     });
   }
 };
+
 
 
 exports.orderList = async (req, res) => {
@@ -354,106 +358,134 @@ exports.orderList = async (req, res) => {
 
  // Ensure this is installed: npm install exceljs
 
- exports.getOrdersByCompanyIdAndDate = async (req, res) => {
+ exports.exportOrders = async (req, res) => {
   try {
-      const { companyId, deliveryDate } = req.query;
+    const { companyId, deliveryDate } = req.query;
 
-      if (!companyId) {
-          return res.status(400).json({ message: 'Company ID is required' });
+    if (!companyId) {
+      return res.status(400).json({ message: 'Company ID is required' });
+    }
+
+    if (!deliveryDate) {
+      return res.status(400).json({ message: 'Delivery date is required' });
+    }
+
+    // Parse the delivery date
+    const date = new Date(deliveryDate);
+    if (isNaN(date.getTime())) {
+      return res.status(400).json({ message: 'Invalid delivery date format' });
+    }
+
+    // Define start and end of the day for filtering
+    const startOfDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0));
+    const endOfDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59));
+
+    // Find the company by ID
+    const company = await Company.findById(companyId);
+    if (!company) {
+      return res.status(404).json({ message: `No company found with ID ${companyId}` });
+    }
+
+    // Fetch users associated with the company
+    const users = await User.find({ companyId });
+    if (!users.length) {
+      return res.status(404).json({ message: `No users found for company with ID ${companyId}` });
+    }
+
+    // Extract user IDs
+    const userIds = users.map(user => user._id);
+
+    // Fetch orders for these users and the specified delivery date
+    const orders = await Order.find({
+      userId: { $in: userIds },
+      deliveryDate: { $gte: startOfDay, $lt: endOfDay },
+    }).populate('items.itemId extras.extraMealId');
+
+    if (!orders.length) {
+      return res.status(404).json({ message: `No orders found for company with ID ${companyId} on ${deliveryDate}` });
+    }
+
+    // Initialize itemCounts and extraCounts
+    const itemCounts = {};
+    const extraCounts = {};
+
+    // Calculate preparation counts
+    for (const order of orders) {
+      // Calculate item counts
+      for (const item of order.items) {
+        const itemName = item.itemId?.itemName || 'Unknown Item';
+        if (!itemCounts[itemName]) {
+          itemCounts[itemName] = 0;
+        }
+        itemCounts[itemName] += item.quantity;
       }
 
-      if (!deliveryDate) {
-          return res.status(400).json({ message: 'Delivery date is required' });
+      // Calculate extra counts
+      for (const extra of order.extras) {
+        const extraName = extra.extraMealId?.name || 'Unknown Extra';
+        if (!extraCounts[extraName]) {
+          extraCounts[extraName] = 0;
+        }
+        extraCounts[extraName] += extra.quantity;
       }
+    }
 
-      // Parse the delivery date
-      const date = new Date(deliveryDate);
-      if (isNaN(date.getTime())) {
-          return res.status(400).json({ message: 'Invalid delivery date format' });
-      }
+    // Create a new workbook and worksheet
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Preparation Counts');
 
-      // Define start and end of the day for filtering
-      const startOfDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0));
-      const endOfDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59));
+    // Add headers
+    worksheet.columns = [
+      { header: 'Item Name', key: 'itemName', width: 30 },
+      { header: 'Total Count', key: 'totalCount', width: 15 },
+    ];
 
-      // Find the company by ID
-      const company = await Company.findById(companyId);
-      if (!company) {
-          return res.status(404).json({ message: `No company found with ID ${companyId}` });
-      }
+    // Populate rows with item counts
+    Object.keys(itemCounts).forEach((itemName) => {
+      worksheet.addRow({
+        itemName,
+        totalCount: itemCounts[itemName],
+      });
+    });
 
-      // Fetch users associated with the company
-      const users = await User.find({ companyId });
-      if (!users.length) {
-          return res.status(404).json({ message: `No users found for company with ID ${companyId}` });
-      }
+    // Add a new section for extras
+    worksheet.addRow({});
+    worksheet.addRow({ itemName: 'Extras', totalCount: '' });
+    worksheet.getRow(worksheet.lastRow.number).font = { bold: true };
 
-      // Extract user IDs
-      const userIds = users.map(user => user._id);
+    Object.keys(extraCounts).forEach((extraName) => {
+      worksheet.addRow({
+        itemName: extraName,
+        totalCount: extraCounts[extraName],
+      });
+    });
 
-      // Fetch orders for these users and the specified delivery date
-      const orders = await Order.find({
-          userId: { $in: userIds },
-          deliveryDate: { $gte: startOfDay, $lt: endOfDay },
-      }).populate('items.itemId');
+    // Style the header row
+    worksheet.getRow(1).font = { bold: true };
 
-      if (!orders.length) {
-          return res.status(404).json({ message: `No orders found for company with ID ${companyId} on ${deliveryDate}` });
-      }
+    // Set response headers
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=preparation_counts_${deliveryDate}_${companyId}.xlsx`
+    );
 
-      // Create an Excel workbook and worksheet
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet('Orders Summary');
-
-      // Add headers to the Excel sheet
-      worksheet.columns = [
-          { header: 'Order ID', key: 'orderId', width: 25 },
-          { header: 'User ID', key: 'userId', width: 25 },
-          { header: 'Delivery Date', key: 'deliveryDate', width: 20 },
-          { header: 'Status', key: 'status', width: 15 },
-          { header: 'Items', key: 'items', width: 50 },
-          { header: 'Total Price', key: 'totalPrice', width: 15 },
-      ];
-
-      // Populate rows with consolidated order data
-      for (const order of orders) {
-          const itemsSummary = order.items.map((item) => {
-              const itemName = item.itemId?.itemName || 'Unknown';
-              const extras = item.extras.length ? ` (Extras: ${item.extras.join(', ')})` : '';
-              return `${item.quantity} x ${itemName}${extras}`;
-          }).join('; ');
-
-          worksheet.addRow({
-              orderId: order._id.toString(),
-              userId: order.userId.toString(),
-              deliveryDate: order.deliveryDate.toISOString().split('T')[0],
-              status: order.status,
-              items: itemsSummary,
-              totalPrice: order.totalPrice,
-          });
-      }
-
-      // Add styling (optional)
-      worksheet.getRow(1).font = { bold: true }; // Bold headers
-
-      // Set response headers for Excel file
-      res.setHeader(
-          'Content-Type',
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      );
-      res.setHeader(
-          'Content-Disposition',
-          `attachment; filename=orders_summary_${company.name.replace(/\s+/g, '_')}_${deliveryDate}.xlsx`
-      );
-
-      // Write the workbook to the response
-      await workbook.xlsx.write(res);
-      res.end();
+    // Write the workbook to the response
+    await workbook.xlsx.write(res);
+    res.end();
   } catch (error) {
-      console.error('Error exporting orders:', error);
-      res.status(500).json({ message: 'Error exporting orders', error: error.message });
+    console.error('Error exporting preparation counts:', error.message || error);
+    res.status(500).json({
+      message: 'An error occurred while exporting preparation counts.',
+      error: error.message || error,
+    });
   }
 };
+
+
 
  
 
