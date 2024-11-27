@@ -233,7 +233,7 @@ exports.orderList = async (req, res) => {
       ]);
   
       const totalCompanies = await Company.countDocuments();
-      const totalEmployees = await Employee.countDocuments();
+      const totalEmployees = await User.countDocuments();
   
       const recentOrders = await Order.find()
         .sort({ createdAt: -1 })
