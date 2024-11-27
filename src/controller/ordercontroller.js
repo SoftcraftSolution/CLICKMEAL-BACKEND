@@ -396,6 +396,7 @@ exports.orderList = async (req, res) => {
           userId: { $in: userIds },
           deliveryDate: { $gte: startOfDay, $lt: endOfDay },
       }).populate('items.itemId');
+
       if (!orders.length) {
           return res.status(404).json({ message: `No orders found for company with ID ${companyId} on ${deliveryDate}` });
       }
@@ -410,26 +411,26 @@ exports.orderList = async (req, res) => {
           { header: 'User ID', key: 'userId', width: 25 },
           { header: 'Delivery Date', key: 'deliveryDate', width: 20 },
           { header: 'Status', key: 'status', width: 15 },
-          { header: 'Item Name', key: 'itemName', width: 25 },
-          { header: 'Quantity', key: 'quantity', width: 10 },
-          { header: 'Extras', key: 'extras', width: 30 },
+          { header: 'Items', key: 'items', width: 50 },
           { header: 'Total Price', key: 'totalPrice', width: 15 },
       ];
 
-      // Populate rows with order data
+      // Populate rows with consolidated order data
       for (const order of orders) {
-          for (const item of order.items) {
-              worksheet.addRow({
-                  orderId: order._id.toString(),
-                  userId: order.userId.toString(),
-                  deliveryDate: order.deliveryDate.toISOString().split('T')[0],
-                  status: order.status,
-                  itemName: item.itemId?.itemName || 'Unknown', // Use optional chaining to avoid errors
-                  quantity: item.quantity,
-                  extras: item.extras.join(', '), // Join extras array into a comma-separated string
-                  totalPrice: order.totalPrice,
-              });
-          }
+          const itemsSummary = order.items.map((item) => {
+              const itemName = item.itemId?.itemName || 'Unknown';
+              const extras = item.extras.length ? ` (Extras: ${item.extras.join(', ')})` : '';
+              return `${item.quantity} x ${itemName}${extras}`;
+          }).join('; ');
+
+          worksheet.addRow({
+              orderId: order._id.toString(),
+              userId: order.userId.toString(),
+              deliveryDate: order.deliveryDate.toISOString().split('T')[0],
+              status: order.status,
+              items: itemsSummary,
+              totalPrice: order.totalPrice,
+          });
       }
 
       // Add styling (optional)
@@ -453,6 +454,7 @@ exports.orderList = async (req, res) => {
       res.status(500).json({ message: 'Error exporting orders', error: error.message });
   }
 };
+
  
 
 
