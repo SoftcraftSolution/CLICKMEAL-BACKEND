@@ -26,10 +26,17 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId, // Use ObjectId for references to Subcategory
         ref: 'Company' // Reference to the Subcategory model
     },
+    points: { type: Number, default: 0 },
     createdAt: {
         type: Date,
         default: Date.now, // Default to the current date
     },
+    redeemedRewards: [
+        {
+          rewardId: { type: mongoose.Schema.Types.ObjectId, ref: 'Reward' },
+          redeemedAt: { type: Date, default: Date.now },
+        },
+      ],
     updatedAt: {
         type: Date,
         default: Date.now, // Default to the current date

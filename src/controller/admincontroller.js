@@ -7,8 +7,8 @@ const Admin = require('../model/admin.model'); // Adjust the path as needed
  // Default password
 
 // Login API
-const defaultEmail = 'kannoujiaaryan@gmail.com'; // Default email
-const defaultPassword = 'defaultPassword123'; // Default password
+const defaultEmail = 'test123@gmail.com'; // Default email
+const defaultPassword = 'test123'; // Default password
 
 // Login API
 exports.login = async (req, res) => {

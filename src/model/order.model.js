@@ -62,6 +62,7 @@ const orderSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+    pointsEarned: { type: Number, default: 0 },
     status: {
       type: String,
       enum: ['ordered', 'preparing', 'delivered'],

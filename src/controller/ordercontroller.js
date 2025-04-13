@@ -1,6 +1,7 @@
 const Order = require('../model/order.model'); // Assuming the Order model is in the 'models' directory
 const MenuItem = require('../model/item.model');
-const Company = require('../model/company.model'); // Replace with your actual model path
+const Company = require('../model/company.model');
+const PointsHistory=require('../model/pointhistory.model') // Replace with your actual model path
 
 const Feedback = require('../model/feedback.model');
 const User = require('../model/user.model');
@@ -68,6 +69,21 @@ exports.createOrder = async (req, res) => {
       );
     }
 
+    // Calculate points earned (assuming 1 point for every 10 units of price)
+    let pointsEarned = Math.floor(totalPrice / 10);
+
+    // Add points to the user and save
+    user.points += pointsEarned;
+    await user.save();
+
+    // Log points history
+    const pointsHistory = new PointsHistory({
+      userId,
+      points: pointsEarned,
+      description: 'Points earned for order completion',
+      orderId: null, // Will set after saving the order
+    });
+
     // Create a new order
     const newOrder = new Order({
       userId,
@@ -83,6 +99,10 @@ exports.createOrder = async (req, res) => {
     // Save the order
     const savedOrder = await newOrder.save();
 
+    // Update the order ID in points history and save
+    pointsHistory.orderId = savedOrder._id;
+    await pointsHistory.save();
+
     // Prepare response data
     const responseData = {
       userId: savedOrder.userId,
@@ -97,6 +117,8 @@ exports.createOrder = async (req, res) => {
       orderId: savedOrder.orderId,
       createdAt: savedOrder.createdAt,
       updatedAt: savedOrder.updatedAt,
+      pointsEarned, // Include points earned in the response
+      totalPoints: user.points, // Include updated total points in the response
     };
 
     // Return success response
@@ -112,6 +134,7 @@ exports.createOrder = async (req, res) => {
     });
   }
 };
+
 
 
 
