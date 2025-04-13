@@ -7,34 +7,57 @@ const Admin = require('../model/admin.model'); // Adjust the path as needed
  // Default password
 
 // Login API
-const defaultEmail = 'test123@gmail.com'; // Default email
-const defaultPassword = 'test123'; // Default password
+const defaultEmail = 'test123@gmail.com';
+const defaultPassword = 'test123';
 
-// Login API
 exports.login = async (req, res) => {
-    const { email, password } = req.body;
-  
-    try {
-      // Find the admin by email
-      const admin = await Admin.findOne({ email });
-      if (!admin) {
-        return res.status(404).json({ message: 'Admin not found' });
-      }
-  
-      // Check if the provided password matches either the default password or the stored password
-      const isValidPassword = password === defaultPassword || (admin.hasResetPassword && password === admin.password);
-  
-      if (!isValidPassword) {
-        return res.status(401).json({ message: 'Invalid email or password.' });
-      }
-  
-      // Successful login response
-      res.status(200).json({ message: 'Login successful.', admin: { email: admin.email } });
-    } catch (error) {
-      console.error('Error during login:', error);
-      res.status(500).json({ message: 'Internal server error.' });
+  const { email, password } = req.body;
+
+  try {
+    let admin = await Admin.findOne({ email });
+
+    // If admin doesn't exist, create one with default credentials
+    if (!admin && email === defaultEmail && password === defaultPassword) {
+      admin = new Admin({
+        email: defaultEmail,
+        password: defaultPassword,
+        hasResetPassword: false,
+        isLoggedIn: true, // mark as logged in
+      });
+
+      await admin.save();
+
+      return res.status(200).json({
+        message: 'Admin created and logged in successfully.',
+        admin: { email: admin.email },
+      });
     }
-  };
+
+    if (!admin) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
+
+    const isValidPassword =
+      password === defaultPassword || (admin.hasResetPassword && password === admin.password);
+
+    if (!isValidPassword) {
+      return res.status(401).json({ message: 'Invalid email or password.' });
+    }
+
+    // ✅ Save login info
+    admin.isLoggedIn = true;
+    await admin.save();
+
+    res.status(200).json({
+      message: 'Login successful.',
+      admin: { email: admin.email },
+    });
+  } catch (error) {
+    console.error('Error during login:', error);
+    res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
   
   
 
